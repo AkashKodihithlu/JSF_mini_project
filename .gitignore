@@ -5,7 +5,7 @@ build/
 *.jar
 
 # Local secrets & environment
-application-local.properties
+application.properties
 .env
 __pycache__/
 venv/

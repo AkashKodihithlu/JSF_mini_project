@@ -1,5 +1,13 @@
 # Copy this file to application-local.properties and update your local credentials
 spring.datasource.username=root
 spring.datasource.password=YOUR_LOCAL_MYSQL_PASSWORD
+
+# ai services
 gemini.api.key=YOUR_GEMINI_API_KEY
 ai.service.url=http://localhost:5000
+
+# SMS Service telegram bot
+sms.enabled=false
+telegram.enabled=false
+telegram.bot.token=PASTE_YOUR_BOTFATHER_TOKEN_HERE
+telegram.chat.id=PASTE_YOUR_NUMERIC_CHAT_ID_HERE

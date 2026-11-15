@@ -1,67 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap');
+
+:root {
+    --navy-950: #050d1d;
+    --navy-900: #08142b;
+    --navy-800: #0d2149;
+    --navy-700: #163269;
+    --crimson-600: #dc2626;
+    --flame-600: #d9481e;
+    --flame-500: #ea580c;
+    --blue-500: #2563eb;
+    --sky-400: #38bdf8;
+    --text-light: #f8fafc;
+    --text-muted: #cbd5e1;
+    --border-glass: rgba(255, 255, 255, 0.14);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-    background: #f4f6f9;
-    color: #1e293b;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--navy-950);
+    color: var(--text-light);
+    overflow-x: hidden;
+    line-height: 1.6;
 }
 
-.navbar {
-    background: #0f172a;
-    color: #ffffff;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
+h1, h2, h3, .brand-font {
+    font-family: 'Rajdhani', 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: 0.03em;
+}
+
+/* =========================================
+   DECORATIVE CURSOR GLOW & RING FOLLOWER
+   ========================================= */
+.cursor-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+        circle,
+        rgba(234, 88, 12, 0.18) 0%,
+        rgba(37, 99, 235, 0.10) 40%,
+        rgba(8, 20, 43, 0) 70%
+    );
+    transform: translate(-50%, -50%);
+    z-index: 9998;
+    transition: width 0.25s ease, height 0.25s ease, opacity 0.3s ease;
+}
+
+.cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid rgba(248, 250, 252, 0.55);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+body.cursor-hover .cursor-ring {
+    width: 48px;
+    height: 48px;
+    border-color: var(--flame-500);
+    background-color: rgba(234, 88, 12, 0.12);
+}
+
+@media (hover: none), (max-width: 768px) {
+    .cursor-glow,
+    .cursor-ring {
+        display: none;
+    }
+}
+
+/* =========================================
+   SHARED BUTTONS & INTERACTIVE HOVER EFFECTS
+   ========================================= */
+.btn-relief {
+    position: relative;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.78rem 1.6rem;
+    border: none;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--flame-600), var(--crimson-600));
+    color: #ffffff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(217, 72, 30, 0.35);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
 }
 
-.badge {
-    background: #1e293b;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    border: 1px solid #334155;
+.btn-relief::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.32),
+        transparent
+    );
+    transition: left 0.55s ease;
 }
 
-.container {
-    max-width: 1100px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    display: grid;
-    gap: 1.5rem;
+.btn-relief:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(220, 38, 38, 0.48);
+    filter: brightness(1.06);
 }
 
-.card {
-    background: #ffffff;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+.btn-relief:hover::after {
+    left: 140%;
 }
 
-.card h2 {
-    margin-bottom: 0.75rem;
-    font-size: 1.25rem;
+.btn-relief:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
 }
 
-.role-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+.btn-outline-glass {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.78rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 5px;
+    background: rgba(13, 33, 73, 0.45);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.22s ease;
 }
 
-.role-box {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 1rem;
-    border-radius: 8px;
+.btn-outline-glass:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: var(--sky-400);
+    transform: translateY(-2px);
 }
 
-.role-box h3 {
-    margin-bottom: 0.4rem;
-    color: #0369a1;
+/* =========================================
+   LOGO BADGE STYLING
+   ========================================= */
+.brand-logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: #ffffff;
+}
+
+.brand-logo-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 50%;
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.35));
+    transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.brand-logo-wrap:hover .brand-logo-img {
+    transform: rotate(-6deg) scale(1.07);
+    filter: drop-shadow(0 0 14px rgba(234, 88, 12, 0.65));
+}
+
+/* =========================================
+   SCROLL REVEAL ANIMATION
+   ========================================= */
+.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
