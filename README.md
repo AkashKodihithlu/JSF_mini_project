@@ -1,151 +1,378 @@
-# ReliefGrid 🌍
+# Disaster Relief Coordination System
+**Prepare • Respond • Recover**
 
-### Disaster Relief Coordination System
+A full-stack emergency response and resource coordination platform built with **Spring Boot**, **JDBC / DAO Pattern**, **JSP / JSTL**, and **MySQL**. The system connects **Affected Citizens**, **Verified Donors**, and **Relief Department Officers** to eliminate duplicated requests, prioritize critical needs, and match nearby relief supplies in real time.
 
-[![Language](https://img.shields.io/badge/Language-Java-orange)]()
-[![Backend](https://img.shields.io/badge/Backend-Spring%20MVC-green)]()
-[![Database](https://img.shields.io/badge/Database-MySQL-blue)]()
-[![Status](https://img.shields.io/badge/Status-In%20Development-yellow)]()
+---
 
-**ReliefGrid** is a web-based disaster relief coordination platform
-designed to connect affected individuals, donors, volunteers, and relief
-authorities through a centralized system.
+## Table of Contents
+1. [System Architecture & Features](#1-system-architecture--features)
+2. [Prerequisites & Required Software](#2-prerequisites--required-software)
+3. [Step-by-Step A–Z Local Setup](#3-step-by-step-az-local-setup)
+4. [Complete MySQL Schema & Seed Script](#4-complete-mysql-schema--seed-script)
+5. [Application Configuration (`application.properties`)](#5-application-configuration-applicationproperties)
+6. [Running the Project](#6-running-the-project)
+7. [A–Z End-to-End Testing Walkthrough](#7-az-end-to-end-testing-walkthrough)
+8. [Project Folder Structure](#8-project-folder-structure)
+9. [Team Git Workflow & Secret Safety Rules](#9-team-git-workflow--secret-safety-rules)
+10. [Troubleshooting Common Errors](#10-troubleshooting-common-errors)
 
-The platform aims to improve disaster response by organizing resource
-requirements, verifying requests, coordinating donations, tracking
-resource allocation, and providing geographical visibility into unmet
-needs.
+---
 
-## The Problem
+## 1. System Architecture & Features
 
-During floods, earthquakes, cyclones, and other disasters, relief
-coordination often depends on scattered phone calls, messaging groups,
-and spreadsheets. This can lead to duplicate requests, uneven
-distribution of supplies, poor visibility into shortages, and difficulty
-tracking whether pledged resources have actually reached the people who
-need them.
+* **Passwordless Mobile OTP Authentication:** Users sign in with a 10-digit Indian mobile number and a 6-digit OTP (printed to the Spring Boot server console during local development). Registered users are routed automatically to their role dashboard; unregistered numbers are directed to `/register` with browser GPS auto-detection.
+* **Three Role-Based Dashboards:**
+  * **Affected Citizen (`/affected/dashboard`):** Submit urgent relief requests (`Food & Rations`, `Clean Drinking Water`, `Medical & First Aid`, `Shelter & Clothing`, `Rescue & Evacuation`), preview AI category/priority/duplicate scores, track fulfillment progress, and chat with donors/officers.
+  * **Verified Donor (`/donor/dashboard`):** Browse verified needs ranked by urgency weight and Haversine GPS distance, pledge full or partial quantities, and coordinate delivery via chat.
+  * **Department / Relief Officer (`/department/dashboard`):** Audit pending requests (Approve, Flag Duplicate, Reject, or override Urgency), reallocate unallocated donor surplus to other open needs, update delivery stages (`ALLOCATED` → `IN_TRANSIT` → `DELIVERED`), broadcast kilometer-radius geo-alerts on Leaflet maps, view Chart.js analytics, and export CSV / Print-PDF reports.
+* **AI Classification & Duplicate Detection:** Connects to an optional Python AI/ML service (`http://localhost:5000`) or Gemini API, with a built-in Jaccard similarity and keyword rule engine fallback so the application works 100% offline as well.
 
-ReliefGrid proposes a structured platform where relief requirements and
-contributions can be recorded, verified, coordinated, and monitored.
+---
 
-## Objectives
+## 2. Prerequisites & Required Software
 
--   Centralize disaster-related resource requirements.
--   Allow relief authorities to review and verify submitted needs.
--   Connect donors with verified requirements.
--   Support partial pledges and controlled resource allocation.
--   Track the journey from requirement to delivery and fulfillment.
--   Coordinate volunteers and relief tasks.
--   Visualize active requirements and unmet needs geographically.
--   Give relief officers a consolidated view of response progress.
+Before starting, make sure every team member has the following installed and added to their system `PATH`:
 
-## Core Workflow
+| Tool | Minimum Version | Verification Command | Download Source |
+| :--- | :--- | :--- | :--- |
+| **Java JDK** | JDK 17 or 21 | `java -version` | Eclipse Temurin / Oracle JDK |
+| **Apache Maven** | 3.8+ | `mvn -version` | `maven.apache.org` (or use `./mvnw`) |
+| **MySQL Server** | 8.0+ | `mysql --version` | MySQL Community Server + Workbench |
+| **Git** | 2.30+ | `git --version` | `git-scm.com` |
+| **IDE (Recommended)** | Latest | — | VS Code (with Extension Pack for Java) or IntelliJ IDEA |
 
-1.  An affected person or authorized officer submits a resource
-    requirement.
-2.  A department officer reviews and verifies the requirement.
-3.  The verified requirement becomes visible to donors.
-4.  Donors submit pledges for quantities they can provide.
-5.  The system validates and records pledges and allocations.
-6.  Relief personnel coordinate delivery.
-7.  An authorized officer confirms fulfillment and closes the
-    requirement.
+---
 
-## Key Features
+## 3. Step-by-Step A–Z Local Setup
 
--   **Need reporting:** Submit resource category, description, quantity,
-    urgency, and location.
--   **Need verification:** Review, approve, reject, or request changes
-    to submitted needs.
--   **Donor pledging:** Discover verified needs and pledge available
-    resources.
--   **Resource allocation:** Track pledged, allocated, delivered, and
-    remaining quantities.
--   **Volunteer coordination:** Maintain volunteer availability and
-    coordinate relief tasks.
--   **Interactive map:** Display active needs using geographical
-    coordinates.
--   **Fulfillment tracking:** Monitor the status of each requirement.
--   **Role-based access:** Provide role-appropriate functionality to
-    system users.
--   **Department dashboard:** Monitor active needs, urgent shortages,
-    pledges, and fulfillment.
+### Step A: Clone the Repository & Switch to the Active Branch
+Open your terminal (Command Prompt, PowerShell, or Git Bash) and run:
+```bash
+git clone [https://github.com/AkashKodihithlu/JSF_mini_project.git](https://github.com/AkashKodihithlu/JSF_mini_project.git)
+cd JSF_mini_project
+git checkout abhi
+```
+*(If changes have been merged into `main`, run `git checkout main && git pull origin main`.)*
 
-## Technology Stack
+### Step B: Start MySQL & Create the Database
+1. Ensure your local **MySQL80** Windows service (or macOS/Linux MySQL daemon) is running.
+2. Open **MySQL Workbench** or connect via terminal:
+   ```bash
+   mysql -u root -p
+   ```
+3. Run the complete SQL script in **[Section 4](#4-complete-mysql-schema--seed-script)** to create `disaster_relief_db`, all 8 relational tables, and the 3 demo accounts.
 
-  Area                   Technology
-  ---------------------- ----------------------------------------
-  Programming language   Java
-  Backend framework      Spring Framework, Spring MVC
-  View technology        JSP
-  Frontend               HTML, CSS, JavaScript
-  Database               MySQL
-  Database access        Spring JDBC / JdbcTemplate
-  Application server     Apache Tomcat
-  Mapping                Leaflet.js, OpenStreetMap
-  Geocoding              Nominatim (planned integration)
-  Real-time updates      Spring WebSocket (planned enhancement)
-  Version control        Git and GitHub
+### Step C: Configure `application.properties`
+Open `src/main/resources/application.properties` and set your local MySQL username and password as shown in **[Section 5](#5-application-configuration-applicationproperties)**.
 
-The core application logic is intended to be implemented in Java using
-the Spring Framework. Python-based backend services and separate backend
-frameworks are not part of the proposed core stack.
+### Step D: Verify Logo Asset Path
+Confirm that the application crest logo exists at:
+```text
+src/main/webapp/assets/images/disasterManageLogo.png
+```
+*(If stored as `disasterManageLogo.jpeg`, the JSP pages automatically fall back to `.jpeg`.)*
 
-## Architecture at a Glance
+### Step E: Set Environment Variables (Optional for Live Gemini AI)
+If you want to enable live Gemini AI calls instead of the built-in offline classifier:
+* **Windows CMD:**
+  ```cmd
+  set GEMINI_API_KEY=your_gemini_api_key_here
+  ```
+* **Windows PowerShell:**
+  ```powershell
+  $env:GEMINI_API_KEY="your_gemini_api_key_here"
+  ```
+* **macOS / Linux:**
+  ```bash
+  export GEMINI_API_KEY="your_gemini_api_key_here"
+  ```
 
-ReliefGrid follows a layered architecture:
+---
 
-`JSP / HTML / CSS / JavaScript → Spring MVC Controller → Service Layer → DAO Layer (Spring JDBC) → MySQL`
+## 4. Complete MySQL Schema & Seed Script
 
-The controller handles incoming requests, the service layer contains
-business rules, the DAO layer performs database operations, and MySQL
-stores application data.
+Copy and execute this entire SQL script in MySQL Workbench or the MySQL CLI:
 
-## User Roles
+```sql
+CREATE DATABASE IF NOT EXISTS disaster_relief_db;
+USE disaster_relief_db;
 
--   **Affected Person:** Reports disaster-related requirements and
-    tracks their status.
--   **Donor:** Discovers verified needs and pledges resources.
--   **Department Officer:** Verifies needs, oversees allocation, and
-    monitors response progress.
--   **Volunteer:** Participates in relief tasks. Volunteer-specific
-    workflows are part of the planned scope and will be finalized during
-    implementation.
+-- 1. Users Table
+CREATE TABLE IF NOT EXISTS users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    mobile_number VARCHAR(15) NOT NULL UNIQUE,
+    role ENUM('AFFECTED_PERSON', 'DONOR', 'DEPARTMENT') NOT NULL,
+    latitude DOUBLE NOT NULL DEFAULT 13.2150,
+    longitude DOUBLE NOT NULL DEFAULT 74.9960,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-## Project Documentation
+-- 2. Disasters Table
+CREATE TABLE IF NOT EXISTS disasters (
+    disaster_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    type VARCHAR(60) NOT NULL,
+    status ENUM('ACTIVE', 'MONITORING', 'CLOSED') DEFAULT 'ACTIVE',
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-Detailed engineering documentation is available in [`docs/`](docs/):
+-- 3. Relief Needs Table
+CREATE TABLE IF NOT EXISTS needs (
+    need_id INT AUTO_INCREMENT PRIMARY KEY,
+    disaster_id INT NOT NULL,
+    created_by INT NOT NULL,
+    category VARCHAR(80) NOT NULL,
+    description TEXT NOT NULL,
+    quantity_required INT NOT NULL,
+    quantity_pledged INT NOT NULL DEFAULT 0,
+    quantity_allocated INT NOT NULL DEFAULT 0,
+    quantity_remaining INT NOT NULL,
+    urgency ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') DEFAULT 'MEDIUM',
+    status ENUM('PENDING_VERIFICATION', 'VERIFIED', 'PARTIALLY_FULFILLED', 'FULFILLED', 'REJECTED') DEFAULT 'PENDING_VERIFICATION',
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (disaster_id) REFERENCES disasters(disaster_id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
+);
 
--   [Project overview](docs/01_PROJECT_OVERVIEW.md)
--   [Requirements and scope](docs/02_REQUIREMENTS_AND_SCOPE.md)
--   [System workflow](docs/03_SYSTEM_WORKFLOW.md)
--   [System architecture](docs/04_SYSTEM_ARCHITECTURE.md)
--   [Technology stack](docs/05_TECHNOLOGY_STACK.md)
--   [Database design](docs/06_DATABASE_DESIGN.md)
--   [Module specifications](docs/07_MODULE_SPECIFICATIONS.md)
--   [Business logic](docs/08_BUSINESS_LOGIC.md)
--   [Application routing design](docs/09_API_AND_ROUTING_DESIGN.md)
--   [Team responsibilities](docs/10_TEAM_RESPONSIBILITIES.md)
--   [Development roadmap](docs/11_DEVELOPMENT_ROADMAP.md)
--   [Git collaboration guidelines](docs/12_GIT_COLLABORATION.md)
--   [Testing strategy](docs/13_TESTING_STRATEGY.md)
+-- 4. Department Verification Audit Table
+CREATE TABLE IF NOT EXISTS need_verification (
+    verification_id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL,
+    department_id INT NOT NULL,
+    status ENUM('APPROVED', 'REJECTED', 'FLAGGED_DUPLICATE') NOT NULL,
+    remarks VARCHAR(255),
+    verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
 
-## Project Status
+-- 5. Donor Pledges Table
+CREATE TABLE IF NOT EXISTS pledges (
+    pledge_id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL,
+    donor_id INT NOT NULL,
+    quantity_offered INT NOT NULL,
+    quantity_allocated INT NOT NULL DEFAULT 0,
+    status ENUM('PLEDGED', 'PARTIALLY_ALLOCATED', 'ALLOCATED', 'CANCELLED') DEFAULT 'PLEDGED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
+    FOREIGN KEY (donor_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
 
-**Planning and initial development.** The first implementation milestone
-is the application foundation: project configuration, Spring MVC request
-handling, MySQL connectivity, and the first end-to-end feature.
+-- 6. Resource Allocations Table
+CREATE TABLE IF NOT EXISTS allocations (
+    allocation_id INT AUTO_INCREMENT PRIMARY KEY,
+    pledge_id INT NOT NULL,
+    need_id INT NOT NULL,
+    quantity_allocated INT NOT NULL,
+    status ENUM('ALLOCATED', 'IN_TRANSIT', 'DELIVERED', 'REASSIGNED') DEFAULT 'ALLOCATED',
+    allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pledge_id) REFERENCES pledges(pledge_id) ON DELETE CASCADE,
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE
+);
 
-Features marked as planned or future scope should not be considered
-implemented until they are completed and tested.
+-- 7. Need-Specific Coordination Chat Table
+CREATE TABLE IF NOT EXISTS messages (
+    message_id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL,
+    sender_id INT NOT NULL,
+    receiver_id INT NULL,
+    content TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
 
-## Team
+-- 8. Radius Geo-Alerts Table
+CREATE TABLE IF NOT EXISTS alerts (
+    alert_id INT AUTO_INCREMENT PRIMARY KEY,
+    disaster_id INT NOT NULL,
+    created_by INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL,
+    radius_km DOUBLE NOT NULL DEFAULT 15.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (disaster_id) REFERENCES disasters(disaster_id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
+);
 
-Developed as a Java Spring Framework mini project by students of the
-Department of Computer Science and Engineering, NMAM Institute of
-Technology.
+-- Seed Default Users (Department, Affected Citizen, Donor)
+INSERT IGNORE INTO users (user_id, name, mobile_number, role, latitude, longitude) VALUES
+(1, 'District Relief Control Room', '9000000001', 'DEPARTMENT', 13.2150, 74.9960),
+(2, 'Ramesh Poojary (Citizen)', '9000000002', 'AFFECTED_PERSON', 13.2185, 74.9920),
+(3, 'Coastal Care Foundation', '9000000003', 'DONOR', 13.2110, 75.0010);
 
-## Guiding Principle
+-- Seed Active Disaster Event
+INSERT IGNORE INTO disasters (disaster_id, name, type, status, latitude, longitude) VALUES
+(1, 'Coastal Monsoon Flood 2026', 'Flood', 'ACTIVE', 13.2150, 74.9960);
 
-**Make relief requirements visible, contributions accountable, and
-fulfillment trackable.**
+-- Seed Sample Verified & Pending Needs for Immediate Testing
+INSERT IGNORE INTO needs (need_id, disaster_id, created_by, category, description, quantity_required, quantity_pledged, quantity_allocated, quantity_remaining, urgency, status, latitude, longitude) VALUES
+(1, 1, 2, 'Clean Drinking Water', '50 bottled water crates needed for 18 families at Ward 4 shelter', 50, 0, 0, 50, 'HIGH', 'VERIFIED', 13.2185, 74.9920),
+(2, 1, 2, 'Medical & First Aid', 'Urgent insulin vials and basic first-aid kits for elderly residents', 15, 0, 0, 15, 'CRITICAL', 'PENDING_VERIFICATION', 13.2192, 74.9935);
+```
+
+---
+
+## 5. Application Configuration (`application.properties`)
+
+Ensure `src/main/resources/application.properties` contains the following configuration (replace `YOUR_MYSQL_PASSWORD` with your local MySQL root password):
+
+```properties
+server.port=8080
+
+# JSP View Resolver
+spring.mvc.view.prefix=/WEB-INF/jsp/
+spring.mvc.view.suffix=.jsp
+
+# MySQL Database Connection
+spring.datasource.url=jdbc:mysql://localhost:3306/disaster_relief_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+spring.datasource.username=root
+spring.datasource.password=YOUR_MYSQL_PASSWORD
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# AI Microservice & Environment Variable Key (NEVER hardcode API keys here)
+ai.service.url=http://localhost:5000
+gemini.api.key=${GEMINI_API_KEY:}
+```
+
+---
+
+## 6. Running the Project
+
+From the root folder (`JSF_mini_project`), compile and launch Spring Boot:
+
+```bash
+mvn clean spring-boot:run
+```
+
+Wait until you see:
+```text
+Started ReliefApplication in X.XXX seconds
+```
+
+Then open your browser and navigate to:
+* **Landing Page:** `http://localhost:8080/`
+* **Sign In / Register:** `http://localhost:8080/login`
+
+---
+
+## 7. A–Z End-to-End Testing Walkthrough
+
+Follow these steps in order to verify every module works end-to-end:
+
+1. **Test Affected Citizen Flow (`9000000002`):**
+   * Open `http://localhost:8080/login`, enter **`9000000002`**, and click **Send OTP now**.
+   * Look at your **terminal / IDE console** where Spring Boot is running—copy the 6-digit OTP printed in the log and submit it.
+   * On `/affected/dashboard`, fill out **Report Relief Need**, click **AI Preview** to test automatic category/urgency/duplicate detection, and click **Submit Request**.
+2. **Test Department Verification & Geo-Alerts (`9000000001`):**
+   * Click **Logout**, sign in with **`9000000001`** (copy the new OTP from the console).
+   * On `/department/dashboard`, review incoming requests in **Pending Verification Queue**, adjust urgency if needed, add remarks, and click **Approve**.
+   * Broadcast a **Radius Geo-Alert** (e.g., `15` km) and verify it appears as a red circle on the **Geospatial Command Map**.
+3. **Test Smart Donor Matching & Pledges (`9000000003`):**
+   * Click **Logout**, sign in with **`9000000003`** (copy the OTP from the console).
+   * On `/donor/dashboard`, view verified requests ranked by match score and GPS distance.
+   * Enter a pledge quantity (try pledging *more* than `quantityRemaining` to create a surplus pool!) and click **Pledge Supplies**.
+   * Click the **Chat** icon on any request to send coordination messages.
+4. **Test Surplus Reallocation, Delivery Stages & Reports (`9000000001`):**
+   * Sign back in as Department Officer (`9000000001`).
+   * Reallocate surplus stock to another open need, mark allocations as **In Transit** / **Delivered**, inspect the **Chart.js** supply graph, and click **Export CSV** or **Print / PDF**.
+5. **Test New User Registration:**
+   * Sign in with any unregistered 10-digit number (e.g., `9876543210`), verify the console OTP, and complete `/register` with GPS auto-detect.
+
+---
+
+## 8. Project Folder Structure
+
+```text
+JSF_mini_project/
+├── pom.xml
+├── README.md
+└── src/main/
+    ├── java/com/relief/
+    │   ├── ReliefApplication.java
+    │   ├── controller/
+    │   │   ├── AuthController.java              # /login, /register, OTP flow, /dashboard router
+    │   │   ├── DashboardController.java         # /affected/dashboard, /donor/dashboard, /department/dashboard
+    │   │   ├── NeedController.java              # /api/needs, AI preview, department verification
+    │   │   ├── PledgeAllocationController.java  # /api/matching/needs, /api/pledges, surplus reallocation
+    │   │   ├── CommunicationController.java     # /api/messages/{needId}, /api/alerts
+    │   │   └── ReportController.java            # /api/reports/summary, /api/reports/export/csv
+    │   ├── service/
+    │   │   ├── NeedService.java
+    │   │   ├── PledgeAllocationService.java
+    │   │   └── CommunicationService.java
+    │   ├── dao/
+    │   │   ├── UserDAO.java
+    │   │   ├── DisasterDAO.java
+    │   │   ├── NeedDAO.java
+    │   │   ├── NeedVerificationDAO.java
+    │   │   ├── PledgeDAO.java
+    │   │   ├── AllocationDAO.java
+    │   │   ├── MessageDAO.java
+    │   │   └── AlertDAO.java
+    │   └── model/
+    │       ├── User.java, Disaster.java, Need.java, NeedVerification.java
+    │       └── Pledge.java, Allocation.java, Message.java, Alert.java
+    ├── resources/
+    │   └── application.properties
+    └── webapp/
+        ├── assets/
+        │   ├── css/style.css
+        │   ├── js/app.js
+        │   ├── js/cursor-effects.js
+        │   └── images/disasterManageLogo.png
+        └── WEB-INF/jsp/
+            ├── index.jsp
+            ├── auth/
+            │   ├── login.jsp
+            │   └── register.jsp
+            └── dashboard/
+                ├── affected-dashboard.jsp
+                ├── donor-dashboard.jsp
+                └── department-dashboard.jsp
+```
+
+---
+
+## 9. Team Git Workflow & Secret Safety Rules
+
+1. **Pull before coding:**
+   ```bash
+   git pull origin abhi
+   ```
+2. **Never commit API keys or personal MySQL passwords:**
+   * GitHub Push Protection (`GH013`) will reject any commit containing a raw `AIza...` Google/Gemini API key anywhere in the repository history—even inside comments.
+   * Always keep `gemini.api.key=${GEMINI_API_KEY:}` in `application.properties` and pass actual keys via environment variables.
+3. **Commit & push your feature:**
+   ```bash
+   git status
+   git add <your-changed-files>
+   git commit -m "Describe your update clearly"
+   git push origin abhi
+   ```
+
+---
+
+## 10. Troubleshooting Common Errors
+
+* **`Port 8080 was already in use`:**
+  Kill the lingering Java process on Windows CMD and restart:
+  ```cmd
+  for /f "tokens=5" %a in ('netstat -aon ^| findstr :8080') do taskkill /F /PID %a
+  mvn spring-boot:run
+  ```
+* **`Access denied for user 'root'@'localhost'`:**
+  Verify `spring.datasource.password` in `src/main/resources/application.properties` matches your local MySQL password and ensure the `disaster_relief_db` database exists.
+* **`404 Whitelabel Error` on JSP pages:**
+  Make sure you run via `mvn spring-boot:run` from the project root directory so Embedded Tomcat resolves `src/main/webapp/WEB-INF/jsp/` properly, and verify `tomcat-embed-jasper` is present in `pom.xml`.
+* **`GH013: Repository rule violations found (Push cannot contain secrets)`:**
+  Remove any literal API key from `application.properties`, run `git add src/main/resources/application.properties && git commit --amend --no-edit`, and push again.
