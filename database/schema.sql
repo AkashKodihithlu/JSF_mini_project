@@ -125,25 +125,17 @@ IF NOT EXISTS allocations
 );
 
 -- 7. MESSAGES
-CREATE TABLE
-IF NOT EXISTS messages
-(
+CREATE TABLE IF NOT EXISTS messages (
     message_id INT AUTO_INCREMENT PRIMARY KEY,
     need_id INT NOT NULL,
     sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    message TEXT NOT NULL,
+    receiver_id INT NULL,
+    content TEXT NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     read_status BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY
-(need_id) REFERENCES needs
-(need_id),
-    FOREIGN KEY
-(sender_id) REFERENCES users
-(user_id),
-    FOREIGN KEY
-(receiver_id) REFERENCES users
-(user_id)
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- 8. ALERTS

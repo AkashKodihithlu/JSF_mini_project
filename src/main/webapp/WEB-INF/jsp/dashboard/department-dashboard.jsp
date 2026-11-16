@@ -868,39 +868,101 @@
 
             // 7. Coordination Chat Modal
             let activeNeedId = null;
+            let chatPollTimer = null;
             const chatModal = document.getElementById("chatModal");
             const chatHistory = document.getElementById("chatHistory");
 
-            async function loadMessages(needId) {
-                chatHistory.innerHTML = "<div style='color:#94a3b8;'>Loading messages...</div>";
+            function renderMessages(messages) {
+                chatHistory.innerHTML = "";
+                if (!messages || messages.length === 0) {
+                    const emptyEl = document.createElement("div");
+                    emptyEl.style.color = "#94a3b8";
+                    emptyEl.style.textAlign = "center";
+                    emptyEl.style.padding = "1.5rem 0";
+                    emptyEl.textContent = "No messages on this need yet.";
+                    chatHistory.appendChild(emptyEl);
+                    return;
+                }
+                messages.forEach((m) => {
+                    const bubble = document.createElement("div");
+                    bubble.className = "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
+
+                    const headerEl = document.createElement("div");
+                    headerEl.style.fontSize = "0.72rem";
+                    headerEl.style.marginBottom = "0.2rem";
+                    headerEl.style.display = "flex";
+                    headerEl.style.justifyContent = "space-between";
+                    headerEl.style.gap = "0.5rem";
+
+                    const senderEl = document.createElement("strong");
+                    senderEl.textContent = (m.senderId === currentUserId) ? "You" : (m.senderName || "User");
+                    headerEl.appendChild(senderEl);
+
+                    if (m.sentAt) {
+                        const timeEl = document.createElement("span");
+                        timeEl.style.color = "#94a3b8";
+                        timeEl.style.fontSize = "0.68rem";
+                        try {
+                            const d = new Date(m.sentAt);
+                            timeEl.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } catch (e) {}
+                        headerEl.appendChild(timeEl);
+                    }
+                    bubble.appendChild(headerEl);
+
+                    const contentEl = document.createElement("div");
+                    contentEl.textContent = m.content || "";
+                    bubble.appendChild(contentEl);
+
+                    chatHistory.appendChild(bubble);
+                });
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            async function loadMessages(needId, isPolling = false) {
+                if (!needId) return;
+                if (!isPolling && chatHistory.children.length === 0) {
+                    chatHistory.innerHTML = "<div style='color:#94a3b8; text-align:center; padding:1.5rem 0;'>Loading messages...</div>";
+                }
                 try {
                     const res = await fetch(contextPath + "/api/messages/" + needId);
-                    const data = await res.json();
-                    chatHistory.innerHTML = "";
-
-                    if (!data.messages || data.messages.length === 0) {
-                        const emptyEl = document.createElement("div");
-                        emptyEl.style.color = "#94a3b8";
-                        emptyEl.textContent = "No messages on this need yet.";
-                        chatHistory.appendChild(emptyEl);
+                    if (!res.ok) {
+                        if (!isPolling) {
+                            chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center;'>Unable to load messages (Status " + res.status + ").</div>";
+                        }
                         return;
                     }
-
-                    data.messages.forEach((m) => {
-                        const bubble = document.createElement("div");
-                        bubble.className = "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
-
-                        const senderEl = document.createElement("strong");
-                        senderEl.textContent = (m.senderName || "User") + ": ";
-                        bubble.appendChild(senderEl);
-                        bubble.appendChild(document.createTextNode(m.content || ""));
-
-                        chatHistory.appendChild(bubble);
-                    });
-                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                    const data = await res.json();
+                    renderMessages(data.messages || []);
                 } catch (err) {
-                    chatHistory.innerHTML = "<div style='color:#fca5a5;'>Unable to load messages.</div>";
+                    if (!isPolling) {
+                        chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center;'>Network error loading messages.</div>";
+                    }
                 }
+            }
+
+            function startChatPolling(needId) {
+                stopChatPolling();
+                chatPollTimer = setInterval(() => {
+                    if (activeNeedId && chatModal.style.display !== "none") {
+                        loadMessages(activeNeedId, true);
+                    } else {
+                        stopChatPolling();
+                    }
+                }, 2500);
+            }
+
+            function stopChatPolling() {
+                if (chatPollTimer) {
+                    clearInterval(chatPollTimer);
+                    chatPollTimer = null;
+                }
+            }
+
+            function closeChatModal() {
+                chatModal.style.display = "none";
+                stopChatPolling();
+                activeNeedId = null;
             }
 
             document.querySelectorAll(".chat-open-btn").forEach((btn) => {
@@ -909,12 +971,21 @@
                     document.getElementById("chatModalTitle").textContent =
                         "Need #" + activeNeedId + " — " + btn.dataset.needTitle;
                     chatModal.style.display = "flex";
-                    loadMessages(activeNeedId);
+                    loadMessages(activeNeedId, false);
+                    startChatPolling(activeNeedId);
+                    setTimeout(() => {
+                        const input = document.getElementById("chatInput");
+                        if (input) input.focus();
+                    }, 100);
                 });
             });
 
-            document.getElementById("closeChatBtn").addEventListener("click", () => {
-                chatModal.style.display = "none";
+            document.getElementById("closeChatBtn").addEventListener("click", closeChatModal);
+            chatModal.addEventListener("click", (e) => {
+                if (e.target === chatModal) closeChatModal();
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && chatModal.style.display === "flex") closeChatModal();
             });
 
             document.getElementById("sendChatForm").addEventListener("submit", async (e) => {
@@ -932,12 +1003,18 @@
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
                         body: new URLSearchParams({ needId: activeNeedId, content: text })
                     });
+                    const data = await res.json();
                     if (res.ok) {
                         input.value = "";
-                        await loadMessages(activeNeedId);
+                        await loadMessages(activeNeedId, false);
+                    } else {
+                        alert(data.error || "Failed to send message.");
                     }
+                } catch (err) {
+                    alert("Network error sending message.");
                 } finally {
                     sendBtn.disabled = false;
+                    input.focus();
                 }
             });
         });

@@ -30,11 +30,16 @@ public class CommunicationController {
 
     @GetMapping("/messages/{needId}")
     public ResponseEntity<?> getMessages(@PathVariable int needId, HttpSession session) {
-        if (session.getAttribute("loggedInUser") == null) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user == null) {
             return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
         }
 
-        List<Message> messages = communicationService.getMessagesForNeed(needId);
+        if (!communicationService.isUserAuthorizedForNeed(user, needId)) {
+            return buildError(HttpStatus.FORBIDDEN, "You are not authorized to view messages for this relief need.");
+        }
+
+        List<Message> messages = communicationService.getMessagesForNeedAndUser(needId, user);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", 200);
         body.put("needId", needId);
@@ -45,15 +50,23 @@ public class CommunicationController {
     @PostMapping("/messages")
     public ResponseEntity<?> postMessage(@RequestParam int needId,
             @RequestParam(required = false) Integer receiverId,
-            @RequestParam String content,
+            @RequestParam(required = false) String content,
             HttpSession session) {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) {
             return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
         }
 
+        if (content == null || content.trim().isEmpty()) {
+            return buildError(HttpStatus.BAD_REQUEST, "Message cannot be empty.");
+        }
+
+        if (!communicationService.isUserAuthorizedForNeed(user, needId)) {
+            return buildError(HttpStatus.FORBIDDEN, "You are not authorized to send messages on this relief need.");
+        }
+
         try {
-            communicationService.sendNeedMessage(needId, user.getUserId(), receiverId, content);
+            communicationService.sendNeedMessage(needId, user, receiverId, content.trim());
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("status", 201);
             body.put("message", "Message sent.");
