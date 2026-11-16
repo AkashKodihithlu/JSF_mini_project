@@ -243,13 +243,18 @@
             </a>
 
             <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <a href="${pageContext.request.contextPath}/api/reports/export/pdf" class="btn-relief"
+                   style="padding: 0.45rem 0.95rem; font-size: 0.82rem; text-decoration: none;"
+                   title="Download Disaster Relief Coordination PDF Report">
+                    &#128196; Download PDF Report
+                </a>
                 <a href="${pageContext.request.contextPath}/api/reports/export/csv" class="btn-outline-glass"
                    style="padding: 0.45rem 0.9rem; font-size: 0.82rem;">
                     &#11015; Export CSV
                 </a>
                 <button type="button" onclick="window.print()" class="btn-outline-glass"
                         style="padding: 0.45rem 0.9rem; font-size: 0.82rem;">
-                    &#128424; Print / PDF
+                    &#128424; Print View
                 </button>
                 <span class="user-pill">&#128737; <c:out value="${user.name}"/></span>
                 <a href="${pageContext.request.contextPath}/logout" class="btn-relief"
