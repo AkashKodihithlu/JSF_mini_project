@@ -14,6 +14,9 @@ public class Need {
     private String status;
     private double latitude;
     private double longitude;
+    private Integer affectedPeopleCount;
+    private Integer criticalPeopleCount;
+    private String locationName;
 
     public int getNeedId() { return needId; }
     public void setNeedId(int needId) { this.needId = needId; }
@@ -53,4 +56,13 @@ public class Need {
 
     public double getLongitude() { return longitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
+
+    public Integer getAffectedPeopleCount() { return affectedPeopleCount; }
+    public void setAffectedPeopleCount(Integer affectedPeopleCount) { this.affectedPeopleCount = affectedPeopleCount; }
+
+    public Integer getCriticalPeopleCount() { return criticalPeopleCount; }
+    public void setCriticalPeopleCount(Integer criticalPeopleCount) { this.criticalPeopleCount = criticalPeopleCount; }
+
+    public String getLocationName() { return locationName; }
+    public void setLocationName(String locationName) { this.locationName = locationName; }
 }

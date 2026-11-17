@@ -62,6 +62,20 @@ public class NeedService {
             String urgency,
             double latitude,
             double longitude) {
+        return submitNeed(disasterId, createdByUserId, category, description, quantityRequired, urgency, latitude, longitude, null, null, null);
+    }
+
+    public Map<String, Object> submitNeed(int disasterId,
+            int createdByUserId,
+            String category,
+            String description,
+            int quantityRequired,
+            String urgency,
+            double latitude,
+            double longitude,
+            Integer affectedPeopleCount,
+            Integer criticalPeopleCount,
+            String locationName) {
         if (disasterDAO.findById(disasterId) == null) {
             throw new IllegalArgumentException("Selected disaster event does not exist.");
         }
@@ -70,6 +84,21 @@ public class NeedService {
         }
         if (quantityRequired <= 0) {
             throw new IllegalArgumentException("Quantity required must be greater than zero.");
+        }
+        if (latitude < -90.0 || latitude > 90.0) {
+            throw new IllegalArgumentException("Latitude must be between -90.0 and 90.0 degrees.");
+        }
+        if (longitude < -180.0 || longitude > 180.0) {
+            throw new IllegalArgumentException("Longitude must be between -180.0 and 180.0 degrees.");
+        }
+        if (affectedPeopleCount != null && affectedPeopleCount < 0) {
+            throw new IllegalArgumentException("Affected people count cannot be negative.");
+        }
+        if (criticalPeopleCount != null && criticalPeopleCount < 0) {
+            throw new IllegalArgumentException("Critical people count cannot be negative.");
+        }
+        if (affectedPeopleCount != null && criticalPeopleCount != null && criticalPeopleCount > affectedPeopleCount) {
+            throw new IllegalArgumentException("Critical people count cannot exceed total affected people count.");
         }
 
         String cleanDesc = description.trim();
@@ -99,6 +128,9 @@ public class NeedService {
         need.setStatus("PENDING_VERIFICATION");
         need.setLatitude(latitude);
         need.setLongitude(longitude);
+        need.setAffectedPeopleCount(affectedPeopleCount);
+        need.setCriticalPeopleCount(criticalPeopleCount);
+        need.setLocationName(locationName != null && !locationName.isBlank() ? locationName.trim() : null);
 
         needDAO.save(need);
 
@@ -108,6 +140,9 @@ public class NeedService {
         response.put("recommendedUrgency", resolvedUrgency);
         response.put("isDuplicateSuspected", duplicateResult.get("isDuplicate"));
         response.put("similarityScore", duplicateResult.get("similarity"));
+        response.put("affectedPeopleCount", affectedPeopleCount);
+        response.put("criticalPeopleCount", criticalPeopleCount);
+        response.put("locationName", need.getLocationName());
         return response;
     }
 

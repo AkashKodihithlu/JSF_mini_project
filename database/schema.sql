@@ -54,13 +54,12 @@ IF NOT EXISTS needs
 ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') DEFAULT 'MEDIUM',
     status ENUM
 ('PENDING_VERIFICATION', 'VERIFIED', 'REJECTED', 'PARTIALLY_FULFILLED', 'FULFILLED') DEFAULT 'PENDING_VERIFICATION',
-    latitude DECIMAL
-(10, 7) NOT NULL,
-    longitude DECIMAL
-(10, 7) NOT NULL,
-    FOREIGN KEY
-(disaster_id) REFERENCES disasters
-(disaster_id),
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    affected_people_count INT NULL DEFAULT NULL,
+    critical_people_count INT NULL DEFAULT NULL,
+    location_name VARCHAR(150) NULL DEFAULT NULL,
+    FOREIGN KEY (disaster_id) REFERENCES disasters(disaster_id),
     FOREIGN KEY
 (created_by) REFERENCES users
 (user_id)
@@ -172,6 +171,27 @@ IF NOT EXISTS alerts
     FOREIGN KEY
 (department_id) REFERENCES users
 (user_id)
+);
+
+-- 9. AREA_SAFETY_ASSESSMENTS (Historical Hazard & Safety Tracking)
+CREATE TABLE IF NOT EXISTS area_safety_assessments (
+    assessment_id INT AUTO_INCREMENT PRIMARY KEY,
+    disaster_id INT NOT NULL,
+    department_id INT NOT NULL,
+    area_name VARCHAR(150) NOT NULL,
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    radius_km DECIMAL(6, 2) NOT NULL,
+    safety_status ENUM('SAFE', 'UNSAFE', 'MONITORING') NOT NULL DEFAULT 'MONITORING',
+    flood_level_meters DECIMAL(4, 2) NULL DEFAULT NULL,
+    assessment_notes TEXT NULL,
+    assessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (disaster_id) REFERENCES disasters(disaster_id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_asa_disaster_area (disaster_id, area_name),
+    INDEX idx_asa_coords (latitude, longitude),
+    INDEX idx_asa_status (safety_status),
+    INDEX idx_asa_assessed_at (assessed_at DESC)
 );
 
 -- Sample Seed Data for Testing

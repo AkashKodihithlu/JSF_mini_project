@@ -31,6 +31,9 @@ public class NeedDAO {
         n.setStatus(rs.getString("status"));
         n.setLatitude(rs.getDouble("latitude"));
         n.setLongitude(rs.getDouble("longitude"));
+        n.setAffectedPeopleCount(rs.getObject("affected_people_count") != null ? rs.getInt("affected_people_count") : null);
+        n.setCriticalPeopleCount(rs.getObject("critical_people_count") != null ? rs.getInt("critical_people_count") : null);
+        n.setLocationName(rs.getString("location_name"));
         return n;
     };
 
@@ -44,9 +47,9 @@ public class NeedDAO {
 
         return jdbcTemplate.update(
                 "INSERT INTO needs (disaster_id, created_by, category, description, quantity_required, " +
-                        "quantity_pledged, quantity_allocated, quantity_remaining, urgency, status, latitude, longitude) "
-                        +
-                        "VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)",
+                        "quantity_pledged, quantity_allocated, quantity_remaining, urgency, status, latitude, longitude, " +
+                        "affected_people_count, critical_people_count, location_name) " +
+                        "VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)",
                 need.getDisasterId(),
                 need.getCreatedBy(),
                 need.getCategory().trim(),
@@ -56,7 +59,10 @@ public class NeedDAO {
                 urgency,
                 status,
                 need.getLatitude(),
-                need.getLongitude());
+                need.getLongitude(),
+                need.getAffectedPeopleCount(),
+                need.getCriticalPeopleCount(),
+                need.getLocationName());
     }
 
     public List<Need> findAll() {

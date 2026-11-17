@@ -88,6 +88,9 @@ public class NeedController {
             @RequestParam(defaultValue = "AUTO") String urgency,
             @RequestParam(required = false) Double latitude,
             @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) Integer affectedPeopleCount,
+            @RequestParam(required = false) Integer criticalPeopleCount,
+            @RequestParam(required = false) String locationName,
             HttpSession session) {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) {
@@ -110,7 +113,10 @@ public class NeedController {
                     quantityRequired,
                     urgency,
                     lat,
-                    lng);
+                    lng,
+                    affectedPeopleCount,
+                    criticalPeopleCount,
+                    locationName);
 
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("status", 201);

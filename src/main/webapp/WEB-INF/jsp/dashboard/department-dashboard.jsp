@@ -170,9 +170,55 @@
             width: 100%;
         }
         #commandMap {
-            height: 330px;
+            height: 480px;
             border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             z-index: 1;
+        }
+        .map-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .map-kpi-card {
+            background: rgba(13, 33, 73, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 0.85rem;
+        }
+        .map-kpi-card span {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+        }
+        .map-kpi-card strong {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.6rem;
+            color: #ffffff;
+            display: block;
+            margin-top: 0.2rem;
+        }
+        .map-legend {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            margin-top: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
         }
         .modal-backdrop {
             position: fixed;
@@ -424,8 +470,127 @@
             </section>
         </div>
 
-        <!-- 3. Geo-Alert Broadcast & Live Command Map -->
+        <!-- 3. Geospatial Command & Control Map -->
+        <section class="panel-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+                <div>
+                    <h2>Geospatial Command Map</h2>
+                    <p class="panel-sub" style="margin-bottom: 0;">Real-time spatial visualization of active relief needs and department safety assessment perimeters.</p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <span id="mapLastUpdated" style="font-size: 0.78rem; color: var(--text-muted);">Polling active...</span>
+                    <button type="button" id="refreshMapBtn" class="btn-outline-glass" style="padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                        &#8635; Refresh Map
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Summary KPI Cards -->
+            <div class="map-kpi-grid">
+                <div class="map-kpi-card">
+                    <span>Active Needs</span>
+                    <strong id="mapMetricActiveNeeds">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Critical People</span>
+                    <strong id="mapMetricCritical" style="color: #fca5a5;">--</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Est. Unique Affected</span>
+                    <strong id="mapMetricUniqueAffected" style="color: #7dd3fc;">--</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Unsafe Zones</span>
+                    <strong id="mapMetricUnsafe" style="color: #ef4444;">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Monitoring Zones</span>
+                    <strong id="mapMetricMonitoring" style="color: #f59e0b;">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Unassessed Needs</span>
+                    <strong id="mapMetricUnknown" style="color: #94a3b8;">0</strong>
+                </div>
+            </div>
+
+            <div id="commandMap"></div>
+
+            <div class="map-legend">
+                <span><strong>Legend:</strong></span>
+                <span><span class="legend-dot" style="background: #ef4444;"></span> Critical Need</span>
+                <span><span class="legend-dot" style="background: #f97316;"></span> High Urgency</span>
+                <span><span class="legend-dot" style="background: #eab308;"></span> Medium Urgency</span>
+                <span><span class="legend-dot" style="background: #3b82f6;"></span> Low Urgency</span>
+                <span style="margin: 0 4px; color: #475569;">|</span>
+                <span><span class="legend-dot" style="background: #dc2626; border: 1px solid #ef4444;"></span> Unsafe Zone</span>
+                <span><span class="legend-dot" style="background: #d97706; border: 1px solid #f59e0b;"></span> Monitoring Zone</span>
+                <span><span class="legend-dot" style="background: #059669; border: 1px solid #10b981;"></span> Safe Zone</span>
+                <span style="margin-left: auto; font-style: italic; color: #94a3b8;">💡 Click anywhere on the map to auto-set assessment coordinates</span>
+            </div>
+        </section>
+
+        <!-- 4. Area Safety Assessment & Geo-Alert Actions -->
         <div class="two-col-grid">
+            <section class="panel-card" style="margin-bottom: 0;">
+                <h2>Record Area Safety Assessment</h2>
+                <p class="panel-sub">Evaluate district sectors as Safe, Monitoring, or Unsafe. Creates an immutable historical audit record.</p>
+
+                <form id="safetyAssessmentForm">
+                    <div class="form-field">
+                        <label for="safetyDisasterId">Disaster Event</label>
+                        <select id="safetyDisasterId" class="dark-select">
+                            <c:forEach var="d" items="${disasters}">
+                                <option value="${d.disasterId}">${fn:escapeXml(d.name)}</option>
+                            </c:forEach>
+                            <c:if test="${empty disasters}">
+                                <option value="1">Coastal Monsoon Flood 2026</option>
+                            </c:if>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="safetyAreaName">Area / Sector Name</label>
+                        <input type="text" id="safetyAreaName" class="dark-input" placeholder="e.g. Velachery West Sector" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-bottom: 0.9rem;">
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Latitude</label>
+                            <input type="number" step="any" id="safetyLat" class="dark-input"
+                                   value="${user.latitude != 0 ? user.latitude : 13.0827}" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Longitude</label>
+                            <input type="number" step="any" id="safetyLng" class="dark-input"
+                                   value="${user.longitude != 0 ? user.longitude : 80.2707}" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Radius (km)</label>
+                            <input type="number" step="any" id="safetyRadius" class="dark-input" min="0.1" max="100" value="3.0" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.9rem;">
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Safety Status</label>
+                            <select id="safetyStatus" class="dark-select" required>
+                                <option value="MONITORING">MONITORING (Caution)</option>
+                                <option value="UNSAFE">UNSAFE (Hazard / Inundated)</option>
+                                <option value="SAFE">SAFE (Verified Clear)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Flood Depth (metres, opt.)</label>
+                            <input type="number" step="0.01" min="0" max="30" id="safetyFloodDepth" class="dark-input" placeholder="e.g. 1.8">
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="safetyNotes">Assessment Notes / Field Guidance</label>
+                        <textarea id="safetyNotes" rows="2" class="dark-textarea" placeholder="Field report, breach status, shelter capacity, route access..."></textarea>
+                    </div>
+                    <button type="submit" id="safetySubmitBtn" class="btn-relief" style="width: 100%;">
+                        &#128737; Save Area Safety Assessment
+                    </button>
+                </form>
+            </section>
+
             <section class="panel-card" style="margin-bottom: 0;">
                 <h2>Broadcast Radius Geo-Alert</h2>
                 <p class="panel-sub">Send targeted emergency alerts to citizens and donors within a kilometer radius.</p>
@@ -470,12 +635,6 @@
                         &#128225; Broadcast Geo-Alert
                     </button>
                 </form>
-            </section>
-
-            <section class="panel-card" style="margin-bottom: 0;">
-                <h2>Geospatial Command Map</h2>
-                <p class="panel-sub">Active relief requests and broadcasted alert zones across the district.</p>
-                <div id="commandMap"></div>
             </section>
         </div>
 
@@ -820,30 +979,37 @@
             }
             renderAnalyticsChart();
 
-            // 6. Leaflet Command Map (Reads from DOM data-* attributes)
+            // 6. Interactive Geospatial Command Map with Auto-Polling & Safety Overlays
             if (typeof L !== "undefined" && document.getElementById("commandMap")) {
                 const cmdMap = L.map("commandMap").setView([centerLat, centerLng], 11);
                 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                     attribution: "&copy; OpenStreetMap contributors"
                 }).addTo(cmdMap);
 
-                document.querySelectorAll(".need-map-row").forEach((row) => {
-                    const lat = parseFloat(row.dataset.lat);
-                    const lng = parseFloat(row.dataset.lng);
-                    if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-                        const popupDiv = document.createElement("div");
-                        const titleEl = document.createElement("strong");
-                        titleEl.textContent = "Need #" + row.dataset.needId + ": " + row.dataset.category;
-                        popupDiv.appendChild(titleEl);
-                        popupDiv.appendChild(document.createElement("br"));
-                        popupDiv.appendChild(document.createTextNode(
-                            "Status: " + row.dataset.status + " | Urgency: " + row.dataset.urgency
-                        ));
+                // Dedicated LayerGroups for clean updates without duplication
+                const needLayerGroup = L.layerGroup().addTo(cmdMap);
+                const safetyLayerGroup = L.layerGroup().addTo(cmdMap);
+                const alertLayerGroup = L.layerGroup().addTo(cmdMap);
 
-                        L.marker([lat, lng]).addTo(cmdMap).bindPopup(popupDiv);
+                // Interactive map click to auto-fill latitude & longitude in forms
+                cmdMap.on("click", (e) => {
+                    const latVal = e.latlng.lat.toFixed(6);
+                    const lngVal = e.latlng.lng.toFixed(6);
+                    const safetyLat = document.getElementById("safetyLat");
+                    const safetyLng = document.getElementById("safetyLng");
+                    if (safetyLat && safetyLng) {
+                        safetyLat.value = latVal;
+                        safetyLng.value = lngVal;
+                    }
+                    const alertLat = document.getElementById("alertLat");
+                    const alertLng = document.getElementById("alertLng");
+                    if (alertLat && alertLng) {
+                        alertLat.value = latVal;
+                        alertLng.value = lngVal;
                     }
                 });
 
+                // Render previous Geo-Alert circles into alertLayerGroup
                 document.querySelectorAll(".alert-map-item").forEach((item) => {
                     const lat = parseFloat(item.dataset.lat);
                     const lng = parseFloat(item.dataset.lng);
@@ -851,19 +1017,334 @@
                     if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
                         const popupDiv = document.createElement("div");
                         const titleEl = document.createElement("strong");
-                        titleEl.textContent = "Alert: " + item.dataset.title;
+                        titleEl.textContent = "Broadcast Alert: " + item.dataset.title;
                         popupDiv.appendChild(titleEl);
                         popupDiv.appendChild(document.createElement("br"));
-                        popupDiv.appendChild(document.createTextNode("Radius: " + radiusKm + " km"));
+                        popupDiv.appendChild(document.createTextNode("Broadcast Radius: " + radiusKm + " km"));
 
                         L.circle([lat, lng], {
                             color: "#ef4444",
                             fillColor: "#dc2626",
-                            fillOpacity: 0.18,
-                            radius: radiusKm * 1000
-                        }).addTo(cmdMap).bindPopup(popupDiv);
+                            fillOpacity: 0.14,
+                            radius: radiusKm * 1000,
+                            dashArray: "5, 5",
+                            weight: 1.5
+                        }).addTo(alertLayerGroup).bindPopup(popupDiv);
                     }
                 });
+
+                function makePopupRow(label, value, valueColor) {
+                    const r = document.createElement("div");
+                    r.style.margin = "2px 0";
+                    const lbl = document.createElement("span");
+                    lbl.style.fontWeight = "600";
+                    lbl.textContent = label + ": ";
+                    r.appendChild(lbl);
+                    const val = document.createElement("span");
+                    val.textContent = value;
+                    if (valueColor) val.style.color = valueColor;
+                    r.appendChild(val);
+                    return r;
+                }
+
+                function createNeedPopup(need) {
+                    const div = document.createElement("div");
+                    div.style.minWidth = "230px";
+                    div.style.fontSize = "0.85rem";
+                    div.style.color = "#0f172a";
+                    div.style.lineHeight = "1.35";
+
+                    const header = document.createElement("strong");
+                    header.textContent = "Need #" + need.needId + ": " + (need.category || "Relief Need");
+                    header.style.display = "block";
+                    header.style.fontSize = "0.95rem";
+                    header.style.marginBottom = "4px";
+                    header.style.color = "#0369a1";
+                    div.appendChild(header);
+
+                    if (need.description) {
+                        const desc = document.createElement("div");
+                        desc.style.fontSize = "0.78rem";
+                        desc.style.color = "#475569";
+                        desc.style.marginBottom = "6px";
+                        desc.textContent = need.description;
+                        div.appendChild(desc);
+                    }
+
+                    div.appendChild(makePopupRow("Urgency", need.urgency || "Unknown"));
+                    div.appendChild(makePopupRow("Status", need.status || "Unknown"));
+                    div.appendChild(makePopupRow("Location", need.locationName ? need.locationName : "Not reported"));
+
+                    const affectedText = (need.affectedPeopleCount !== null && need.affectedPeopleCount !== undefined)
+                            ? need.affectedPeopleCount + " people"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Affected Count", affectedText));
+
+                    const criticalText = (need.criticalPeopleCount !== null && need.criticalPeopleCount !== undefined)
+                            ? need.criticalPeopleCount + " people"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Critical Count", criticalText, "#b91c1c"));
+
+                    const req = need.quantityRequired || 0;
+                    const alloc = need.quantityAllocated || 0;
+                    const rem = need.quantityRemaining !== undefined ? need.quantityRemaining : (req - alloc);
+                    div.appendChild(makePopupRow("Req / Alloc / Rem", req + " / " + alloc + " / " + rem));
+
+                    div.appendChild(makePopupRow("Disaster", (need.disasterName ? need.disasterName : "Event #" + (need.disasterId || 1))));
+
+                    const updatedStr = need.createdAt ? need.createdAt.replace("T", " ").substring(0, 16) : "Recent";
+                    div.appendChild(makePopupRow("Last Updated", updatedStr));
+
+                    return div;
+                }
+
+                function createSafetyPopup(a) {
+                    const div = document.createElement("div");
+                    div.style.minWidth = "230px";
+                    div.style.fontSize = "0.85rem";
+                    div.style.color = "#0f172a";
+                    div.style.lineHeight = "1.35";
+
+                    const header = document.createElement("strong");
+                    header.textContent = "Area: " + a.areaName;
+                    header.style.display = "block";
+                    header.style.fontSize = "0.95rem";
+                    header.style.marginBottom = "4px";
+                    header.style.color = "#0f172a";
+                    div.appendChild(header);
+
+                    let statusColor = "#16a34a";
+                    if (a.safetyStatus === "UNSAFE") statusColor = "#dc2626";
+                    else if (a.safetyStatus === "MONITORING") statusColor = "#d97706";
+
+                    div.appendChild(makePopupRow("Safety Status", a.safetyStatus, statusColor));
+
+                    const floodText = (a.floodLevelMeters !== null && a.floodLevelMeters !== undefined)
+                            ? a.floodLevelMeters + " m"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Flood Depth", floodText));
+
+                    div.appendChild(makePopupRow("Radius", (a.radiusKm || 0) + " km"));
+                    div.appendChild(makePopupRow("Assessed By", a.departmentOfficerName || "Department Officer"));
+
+                    const timeStr = a.assessedAt ? a.assessedAt.replace("T", " ").substring(0, 16) : "Recent";
+                    div.appendChild(makePopupRow("Assessed At", timeStr));
+
+                    if (a.assessmentNotes) {
+                        div.appendChild(makePopupRow("Notes", a.assessmentNotes));
+                    }
+
+                    return div;
+                }
+
+                function renderNeedMarkers(needs) {
+                    needLayerGroup.clearLayers();
+                    const urgencyStyles = {
+                        "CRITICAL": { color: "#ffffff", fillColor: "#ef4444", radius: 9 },
+                        "HIGH": { color: "#ffffff", fillColor: "#f97316", radius: 8 },
+                        "MEDIUM": { color: "#ffffff", fillColor: "#eab308", radius: 7 },
+                        "LOW": { color: "#ffffff", fillColor: "#3b82f6", radius: 6 }
+                    };
+
+                    needs.forEach((need) => {
+                        const lat = parseFloat(need.latitude);
+                        const lng = parseFloat(need.longitude);
+                        if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+                            const style = urgencyStyles[need.urgency] || urgencyStyles["MEDIUM"];
+                            const marker = L.circleMarker([lat, lng], {
+                                radius: style.radius,
+                                color: style.color,
+                                fillColor: style.fillColor,
+                                fillOpacity: 0.9,
+                                weight: 2
+                            });
+                            marker.bindPopup(createNeedPopup(need));
+                            needLayerGroup.addLayer(marker);
+                        }
+                    });
+                }
+
+                function renderSafetyCircles(assessments) {
+                    safetyLayerGroup.clearLayers();
+                    assessments.forEach((a) => {
+                        if (a.safetyStatus === "UNKNOWN") return; // Never render circle for UNKNOWN
+
+                        const lat = parseFloat(a.latitude);
+                        const lng = parseFloat(a.longitude);
+                        const radiusMeters = (parseFloat(a.radiusKm) || 1) * 1000;
+
+                        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+
+                        let strokeColor = "#10b981";
+                        let fillColor = "#059669";
+                        let fillOpacity = 0.18;
+
+                        if (a.safetyStatus === "UNSAFE") {
+                            strokeColor = "#ef4444";
+                            fillColor = "#dc2626";
+                            fillOpacity = 0.22;
+                        } else if (a.safetyStatus === "MONITORING") {
+                            strokeColor = "#f59e0b";
+                            fillColor = "#d97706";
+                            fillOpacity = 0.18;
+                        }
+
+                        const circle = L.circle([lat, lng], {
+                            radius: radiusMeters,
+                            color: strokeColor,
+                            fillColor: fillColor,
+                            fillOpacity: fillOpacity,
+                            weight: 2
+                        });
+                        circle.bindPopup(createSafetyPopup(a));
+                        safetyLayerGroup.addLayer(circle);
+                    });
+                }
+
+                function updateMapSummaryCards(metrics) {
+                    if (!metrics) return;
+                    const elActive = document.getElementById("mapMetricActiveNeeds");
+                    if (elActive) elActive.textContent = metrics.totalActiveNeeds ?? 0;
+
+                    const elCrit = document.getElementById("mapMetricCritical");
+                    if (elCrit) {
+                        elCrit.textContent = (metrics.reportedCriticalPeople !== null && metrics.reportedCriticalPeople !== undefined)
+                                ? metrics.reportedCriticalPeople
+                                : "Not reported";
+                    }
+
+                    const elAff = document.getElementById("mapMetricUniqueAffected");
+                    if (elAff) {
+                        elAff.textContent = (metrics.estimatedUniqueAffectedPeople !== null && metrics.estimatedUniqueAffectedPeople !== undefined)
+                                ? metrics.estimatedUniqueAffectedPeople + " est."
+                                : "Not reported";
+                    }
+
+                    const elUnsafe = document.getElementById("mapMetricUnsafe");
+                    if (elUnsafe) elUnsafe.textContent = metrics.unsafeAreasCount ?? 0;
+
+                    const elMon = document.getElementById("mapMetricMonitoring");
+                    if (elMon) elMon.textContent = metrics.monitoringAreasCount ?? 0;
+
+                    const elUnk = document.getElementById("mapMetricUnknown");
+                    if (elUnk) elUnk.textContent = metrics.unknownSafetyNeedsCount ?? 0;
+                }
+
+                async function fetchMapDataAndOverlays() {
+                    try {
+                        const disasterSelect = document.getElementById("safetyDisasterId");
+                        const disasterId = disasterSelect ? (disasterSelect.value || 1) : 1;
+
+                        const [needsRes, safetyRes, metricsRes] = await Promise.all([
+                            fetch(contextPath + "/api/needs"),
+                            fetch(contextPath + "/api/safety-assessments?disasterId=" + disasterId),
+                            fetch(contextPath + "/api/safety-assessments/metrics?disasterId=" + disasterId)
+                        ]);
+
+                        if (needsRes.ok) {
+                            const needsData = await needsRes.json();
+                            const needs = Array.isArray(needsData) ? needsData : (needsData.needs || []);
+                            renderNeedMarkers(needs);
+                        }
+
+                        if (safetyRes.ok) {
+                            const safetyData = await safetyRes.json();
+                            const assessments = safetyData.assessments || [];
+                            renderSafetyCircles(assessments);
+                        }
+
+                        if (metricsRes.ok) {
+                            const metrics = await metricsRes.json();
+                            updateMapSummaryCards(metrics);
+                        }
+
+                        const now = new Date();
+                        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        const updatedEl = document.getElementById("mapLastUpdated");
+                        if (updatedEl) {
+                            updatedEl.textContent = "Live — Polled at " + timeStr;
+                        }
+                    } catch (err) {
+                        console.warn("Command map polling error:", err);
+                    }
+                }
+
+                // Initial fetch
+                fetchMapDataAndOverlays();
+
+                // Periodic REST polling every 12 seconds
+                const mapPollTimer = setInterval(fetchMapDataAndOverlays, 12000);
+
+                // Refresh button listener
+                const refreshBtn = document.getElementById("refreshMapBtn");
+                if (refreshBtn) {
+                    refreshBtn.addEventListener("click", () => {
+                        fetchMapDataAndOverlays();
+                        showCmdBanner("Command map refreshed.", false);
+                    });
+                }
+
+                // Disaster selector change listener
+                const disasterSelect = document.getElementById("safetyDisasterId");
+                if (disasterSelect) {
+                    disasterSelect.addEventListener("change", () => {
+                        fetchMapDataAndOverlays();
+                    });
+                }
+
+                // Area Safety Assessment Form Submission Handler
+                const safetyForm = document.getElementById("safetyAssessmentForm");
+                if (safetyForm) {
+                    safetyForm.addEventListener("submit", async (e) => {
+                        e.preventDefault();
+                        const submitBtn = document.getElementById("safetySubmitBtn");
+                        submitBtn.disabled = true;
+
+                        try {
+                            const disasterIdVal = document.getElementById("safetyDisasterId").value;
+                            const areaNameVal = document.getElementById("safetyAreaName").value;
+                            const latVal = document.getElementById("safetyLat").value;
+                            const lngVal = document.getElementById("safetyLng").value;
+                            const radiusVal = document.getElementById("safetyRadius").value;
+                            const statusVal = document.getElementById("safetyStatus").value;
+                            const floodVal = document.getElementById("safetyFloodDepth").value;
+                            const notesVal = document.getElementById("safetyNotes").value;
+
+                            const params = new URLSearchParams({
+                                disasterId: disasterIdVal,
+                                areaName: areaNameVal,
+                                latitude: latVal,
+                                longitude: lngVal,
+                                radiusKm: radiusVal,
+                                safetyStatus: statusVal
+                            });
+                            if (floodVal !== "") {
+                                params.append("floodLevelMeters", floodVal);
+                            }
+                            if (notesVal !== "") {
+                                params.append("assessmentNotes", notesVal);
+                            }
+
+                            const res = await fetch(contextPath + "/api/safety-assessments", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                body: params
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                                showCmdBanner("Area safety assessment for '" + areaNameVal + "' recorded successfully!", false);
+                                safetyForm.reset();
+                                fetchMapDataAndOverlays();
+                            } else {
+                                showCmdBanner(data.message || data.error || "Failed to record safety assessment.", true);
+                            }
+                        } catch (err) {
+                            showCmdBanner("Network error submitting safety assessment.", true);
+                        } finally {
+                            submitBtn.disabled = false;
+                        }
+                    });
+                }
             }
 
             // 7. Coordination Chat Modal
