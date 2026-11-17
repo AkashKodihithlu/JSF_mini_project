@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -133,14 +134,19 @@
             font-weight: 700;
             text-transform: uppercase;
         }
+        .score-pill {
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #7dd3fc;
+        }
         .urg-CRITICAL { background: rgba(220, 38, 38, 0.25); color: #fca5a5; border: 1px solid #f87171; }
         .urg-HIGH { background: rgba(234, 88, 12, 0.25); color: #fdba74; border: 1px solid #fb923c; }
         .urg-MEDIUM { background: rgba(37, 99, 235, 0.25); color: #93c5fd; border: 1px solid #60a5fa; }
         .urg-LOW { background: rgba(100, 116, 139, 0.25); color: #cbd5e1; }
         .st-PENDING_VERIFICATION { background: rgba(234, 179, 8, 0.2); color: #fde047; }
         .st-VERIFIED, .st-PARTIALLY_FULFILLED, .st-ALLOCATED, .st-IN_TRANSIT { background: rgba(14, 165, 233, 0.22); color: #7dd3fc; }
-        .st-FULFILLED, .st-DELIVERED { background: rgba(34, 197, 94, 0.22); color: #86efac; }
-        .st-REJECTED, .st-REASSIGNED { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+        .st-FULFILLED, .st-DELIVERED, .st-CONFIRMED { background: rgba(34, 197, 94, 0.22); color: #86efac; }
+        .st-REJECTED, .st-REASSIGNED, .st-CANCELLED { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
         .btn-sm {
             padding: 0.38rem 0.72rem;
             font-size: 0.78rem;
@@ -154,7 +160,6 @@
         .btn-approve { background: #16a34a; color: #ffffff; }
         .btn-dup { background: #d97706; color: #ffffff; }
         .btn-reject { background: #dc2626; color: #ffffff; }
-        .btn-transit { background: #0284c7; color: #ffffff; }
         .msg-banner {
             padding: 0.75rem 1rem;
             border-radius: 6px;
@@ -164,6 +169,148 @@
         }
         .msg-ok { background: rgba(22, 101, 52, 0.9); border: 1px solid #86efac; color: #dcfce7; }
         .msg-err { background: rgba(153, 27, 27, 0.9); border: 1px solid #fca5a5; color: #ffffff; }
+
+        /* Horizontal Connection Timeline Cards */
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+        .conn-card {
+            background: var(--navy-950);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 1.2rem 1.4rem;
+            transition: border-color 0.2s ease;
+        }
+        .conn-card.is-confirmed {
+            border-color: rgba(74, 222, 128, 0.45);
+        }
+        .conn-card.is-cancelled {
+            border-color: rgba(248, 113, 113, 0.45);
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .conn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.05rem;
+        }
+        .conn-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+        .htl-track {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            position: relative;
+            margin: 1.1rem 0 0.8rem;
+            padding: 0 0.5rem;
+        }
+        .htl-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            z-index: 1;
+        }
+        .htl-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: rgba(148, 163, 184, 0.22);
+            z-index: -1;
+        }
+        .htl-step.done:not(:last-child)::after {
+            background: linear-gradient(90deg, #38bdf8, #4ade80);
+        }
+        .htl-step.active:not(:last-child)::after {
+            background: linear-gradient(90deg, #38bdf8 35%, rgba(148, 163, 184, 0.22) 100%);
+        }
+        .htl-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #0f172a;
+            border: 2px solid rgba(148, 163, 184, 0.35);
+            color: #94a3b8;
+            margin-bottom: 0.45rem;
+        }
+        .htl-step.done .htl-dot {
+            background: rgba(22, 163, 74, 0.25);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+        .htl-step.active .htl-dot {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: #38bdf8;
+            color: #e0f2fe;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+        }
+        .htl-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+        .htl-step.done .htl-label { color: #86efac; }
+        .htl-step.active .htl-label { color: #38bdf8; }
+        .htl-sub {
+            font-size: 0.71rem;
+            color: #94a3b8;
+            margin-top: 0.15rem;
+            max-width: 150px;
+        }
+        .cancel-callout {
+            background: rgba(153, 27, 27, 0.22);
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin: 0.65rem 0;
+            font-size: 0.84rem;
+            color: #fecaca;
+        }
+        .conn-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 0.6rem;
+        }
+        .step-advance-link {
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #7dd3fc;
+            padding: 0.38rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .step-advance-link:hover {
+            background: rgba(14, 165, 233, 0.28);
+            color: #ffffff;
+        }
+
         .chart-box {
             position: relative;
             height: 260px;
@@ -265,6 +412,21 @@
         @media (max-width: 980px) {
             .two-col-grid { grid-template-columns: 1fr; }
         }
+        @media (max-width: 640px) {
+            .htl-track {
+                grid-template-columns: 1fr;
+                gap: 0.85rem;
+            }
+            .htl-step:not(:last-child)::after {
+                display: none;
+            }
+            .htl-step {
+                flex-direction: row;
+                text-align: left;
+                gap: 0.75rem;
+            }
+            .htl-sub { max-width: none; }
+        }
     </style>
 </head>
 <body data-context-path="${pageContext.request.contextPath}"
@@ -327,7 +489,7 @@
                 <strong style="color: #fdba74;">${fn:length(surplusPledges)}</strong>
             </div>
             <div class="kpi-card">
-                <span>Active Allocations</span>
+                <span>Donor &harr; Citizen Connections</span>
                 <strong style="color: #4ade80;">${fn:length(allocations)}</strong>
             </div>
         </section>
@@ -525,7 +687,7 @@
                 <span><span class="legend-dot" style="background: #dc2626; border: 1px solid #ef4444;"></span> Unsafe Zone</span>
                 <span><span class="legend-dot" style="background: #d97706; border: 1px solid #f59e0b;"></span> Monitoring Zone</span>
                 <span><span class="legend-dot" style="background: #059669; border: 1px solid #10b981;"></span> Safe Zone</span>
-                <span style="margin-left: auto; font-style: italic; color: #94a3b8;">💡 Click anywhere on the map to auto-set assessment coordinates</span>
+                <span style="margin-left: auto; font-style: italic; color: #94a3b8;">Click anywhere on the map to auto-set assessment coordinates</span>
             </div>
         </section>
 
@@ -638,56 +800,150 @@
             </section>
         </div>
 
-        <!-- 4. Resource Allocations & Delivery Tracking -->
+        <!-- 5. Horizontal Resource Allocation & Delivery Timelines -->
         <section class="panel-card">
-            <h2>Resource Allocations &amp; Delivery Status</h2>
-            <p class="panel-sub">Update field dispatch status from Allocated to In-Transit and Delivered.</p>
+            <h2>Live Donor &harr; Citizen Delivery Timelines</h2>
+            <p class="panel-sub">
+                Unified 4-stage horizontal progress across all active allocations, citizen receipt confirmations, and donor cancellation explanations.
+            </p>
 
             <c:choose>
                 <c:when test="${empty allocations}">
                     <p style="color: var(--text-muted); text-align: center; padding: 1rem 0;">
-                        No resource allocations recorded yet. Allocations appear here once donors pledge supplies.
+                        No resource allocations recorded yet. Timelines appear here automatically once donors connect with citizens.
                     </p>
                 </c:when>
                 <c:otherwise>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Allocation ID</th>
-                                    <th>Pledge ID</th>
-                                    <th>Target Need</th>
-                                    <th>Units Allocated</th>
-                                    <th>Delivery Status</th>
-                                    <th>Update Stage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:forEach var="al" items="${allocations}">
-                                    <tr>
-                                        <td><strong>#${al.allocationId}</strong></td>
-                                        <td>Pledge #${al.pledgeId}</td>
-                                        <td>Need #${al.needId}</td>
-                                        <td><strong>${al.quantityAllocated}</strong></td>
-                                        <td><span class="badge st-${al.status}">${al.status}</span></td>
-                                        <td>
-                                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-                                                <button type="button" class="btn-sm btn-transit alloc-status-btn"
-                                                        data-alloc-id="${al.allocationId}" data-status="IN_TRANSIT">In Transit</button>
-                                                <button type="button" class="btn-sm btn-approve alloc-status-btn"
-                                                        data-alloc-id="${al.allocationId}" data-status="DELIVERED">Delivered</button>
+                    <div class="timeline-list">
+                        <c:forEach var="al" items="${allocations}">
+                            <c:set var="stepNum" value="1"/>
+                            <c:if test="${al.status == 'IN_TRANSIT'}"><c:set var="stepNum" value="2"/></c:if>
+                            <c:if test="${al.status == 'DELIVERED'}"><c:set var="stepNum" value="3"/></c:if>
+                            <c:if test="${al.status == 'CONFIRMED'}"><c:set var="stepNum" value="4"/></c:if>
+                            <c:if test="${al.status == 'CANCELLED'}"><c:set var="stepNum" value="-1"/></c:if>
+
+                            <div class="conn-card ${al.status == 'CONFIRMED' ? 'is-confirmed' : (al.status == 'CANCELLED' ? 'is-cancelled' : '')}">
+                                <div class="conn-header">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                                            <strong style="font-size: 1.08rem; color: #ffffff;">
+                                                Allocation #${al.allocationId} &bull; <c:out value="${al.needCategory}"/> (Need #${al.needId})
+                                            </strong>
+                                            <span class="badge score-pill">${al.quantityAllocated} Units</span>
+                                            <c:if test="${not empty al.needUrgency}">
+                                                <span class="badge urg-${al.needUrgency}">${al.needUrgency}</span>
+                                            </c:if>
+                                        </div>
+                                        <div class="conn-meta">
+                                            <span>Donor: <strong style="color: #7dd3fc;"><c:out value="${not empty al.donorName ? al.donorName : 'Donor'}"/></strong> (Pledge #${al.pledgeId})</span>
+                                            <span>&rarr;</span>
+                                            <span>Recipient: <strong style="color: #e2e8f0;"><c:out value="${not empty al.affectedPersonName ? al.affectedPersonName : 'Citizen'}"/></strong></span>
+                                            <c:if test="${not empty al.allocatedAt}">
+                                                <span>&bull; <fmt:formatDate value="${al.allocatedAt}" pattern="dd MMM, HH:mm"/></span>
+                                            </c:if>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <button type="button" class="btn-outline-glass chat-open-btn"
+                                                style="padding: 0.38rem 0.8rem; font-size: 0.78rem;"
+                                                data-need-id="${al.needId}"
+                                                data-need-title="${fn:escapeXml(al.needCategory)}">
+                                            &#128172; Command Chat
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <c:choose>
+                                    <c:when test="${al.status == 'CANCELLED'}">
+                                        <div class="cancel-callout">
+                                            <strong>&#10006; Cancelled by Donor</strong>
+                                            <c:if test="${not empty al.cancelledAt}">
+                                                (<fmt:formatDate value="${al.cancelledAt}" pattern="dd MMM, HH:mm"/>)
+                                            </c:if>
+                                            <div style="margin-top: 0.3rem; color: #fee2e2;">
+                                                <strong>Cancellation Reason:</strong> &ldquo;<c:out value="${not empty al.cancellationReason ? al.cancellationReason : 'Cancelled by donor'}"/>&rdquo;
                                             </div>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <!-- 4-Stage Horizontal Stepper -->
+                                        <div class="htl-track">
+                                            <div class="htl-step ${stepNum > 1 ? 'done' : (stepNum == 1 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 1 ? '&#10003;' : '1'}</div>
+                                                <div class="htl-label">Connected</div>
+                                                <div class="htl-sub">Pledge #${al.pledgeId} matched</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum > 2 ? 'done' : (stepNum == 2 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 2 ? '&#10003;' : '2'}</div>
+                                                <div class="htl-label">In Transit</div>
+                                                <div class="htl-sub">Dispatched toward citizen</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum > 3 ? 'done' : (stepNum == 3 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 3 ? '&#10003;' : '3'}</div>
+                                                <div class="htl-label">At Drop-Off</div>
+                                                <div class="htl-sub">Awaiting citizen receipt</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum == 4 ? 'done' : ''}">
+                                                <div class="htl-dot">${stepNum == 4 ? '&#10003;' : '4'}</div>
+                                                <div class="htl-label">Need Reached</div>
+                                                <div class="htl-sub">
+                                                    <c:choose>
+                                                        <c:when test="${stepNum == 4}">
+                                                            Confirmed by citizen
+                                                            <c:if test="${not empty al.confirmedAt}">
+                                                                (<fmt:formatDate value="${al.confirmedAt}" pattern="dd MMM, HH:mm"/>)
+                                                            </c:if>
+                                                        </c:when>
+                                                        <c:otherwise>Citizen confirms receipt</c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
+
+                                <div class="conn-footer">
+                                    <div style="font-size: 0.8rem; color: #94a3b8;">
+                                        <c:choose>
+                                            <c:when test="${al.status == 'CONFIRMED'}">
+                                                <span style="color: #4ade80; font-weight: 600;">&#10003; Verified Delivered: Recipient confirmed supplies reached them.</span>
+                                            </c:when>
+                                            <c:when test="${al.status == 'CANCELLED'}">
+                                                ${al.quantityAllocated} units restored to Need #${al.needId} open queue.
+                                            </c:when>
+                                            <c:otherwise>
+                                                Current Timeline Stage: <strong style="color: #e2e8f0;">${al.status}</strong>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <c:if test="${al.status == 'ALLOCATED'}">
+                                            <button type="button" class="step-advance-link alloc-status-btn"
+                                                    data-alloc-id="${al.allocationId}" data-status="IN_TRANSIT">
+                                                Officer Override: In Transit &rarr;
+                                            </button>
+                                        </c:if>
+                                        <c:if test="${al.status == 'IN_TRANSIT'}">
+                                            <button type="button" class="step-advance-link alloc-status-btn"
+                                                    data-alloc-id="${al.allocationId}" data-status="DELIVERED">
+                                                Officer Override: At Drop-Off &rarr;
+                                            </button>
+                                        </c:if>
+                                    </div>
+                                </div>
+                            </div>
+                        </c:forEach>
                     </div>
                 </c:otherwise>
             </c:choose>
         </section>
 
-        <!-- 5. Master Needs Ledger -->
+        <!-- 6. Master Needs Ledger -->
         <section class="panel-card">
             <h2>Master Needs Ledger</h2>
             <p class="panel-sub">Monitor all reported needs across stages and open direct coordination chats.</p>
@@ -909,7 +1165,7 @@
                 });
             }
 
-            // 4. Allocation Delivery Status Buttons
+            // 4. Allocation Timeline Stage Override Links
             document.querySelectorAll(".alloc-status-btn").forEach((btn) => {
                 btn.addEventListener("click", async () => {
                     const allocId = btn.dataset.allocId;
@@ -924,7 +1180,7 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showCmdBanner("Allocation #" + allocId + " updated to " + newStatus + ".", false);
+                            showCmdBanner("Allocation #" + allocId + " timeline updated to " + newStatus + ".", false);
                             setTimeout(() => window.location.reload(), 650);
                         } else {
                             showCmdBanner(data.error || "Failed to update allocation status.", true);
@@ -986,12 +1242,10 @@
                     attribution: "&copy; OpenStreetMap contributors"
                 }).addTo(cmdMap);
 
-                // Dedicated LayerGroups for clean updates without duplication
                 const needLayerGroup = L.layerGroup().addTo(cmdMap);
                 const safetyLayerGroup = L.layerGroup().addTo(cmdMap);
                 const alertLayerGroup = L.layerGroup().addTo(cmdMap);
 
-                // Interactive map click to auto-fill latitude & longitude in forms
                 cmdMap.on("click", (e) => {
                     const latVal = e.latlng.lat.toFixed(6);
                     const lngVal = e.latlng.lng.toFixed(6);
@@ -1009,7 +1263,6 @@
                     }
                 });
 
-                // Render previous Geo-Alert circles into alertLayerGroup
                 document.querySelectorAll(".alert-map-item").forEach((item) => {
                     const lat = parseFloat(item.dataset.lat);
                     const lng = parseFloat(item.dataset.lng);
@@ -1167,7 +1420,7 @@
                 function renderSafetyCircles(assessments) {
                     safetyLayerGroup.clearLayers();
                     assessments.forEach((a) => {
-                        if (a.safetyStatus === "UNKNOWN") return; // Never render circle for UNKNOWN
+                        if (a.safetyStatus === "UNKNOWN") return;
 
                         const lat = parseFloat(a.latitude);
                         const lng = parseFloat(a.longitude);
@@ -1269,13 +1522,9 @@
                     }
                 }
 
-                // Initial fetch
                 fetchMapDataAndOverlays();
+                setInterval(fetchMapDataAndOverlays, 12000);
 
-                // Periodic REST polling every 12 seconds
-                const mapPollTimer = setInterval(fetchMapDataAndOverlays, 12000);
-
-                // Refresh button listener
                 const refreshBtn = document.getElementById("refreshMapBtn");
                 if (refreshBtn) {
                     refreshBtn.addEventListener("click", () => {
@@ -1284,7 +1533,6 @@
                     });
                 }
 
-                // Disaster selector change listener
                 const disasterSelect = document.getElementById("safetyDisasterId");
                 if (disasterSelect) {
                     disasterSelect.addEventListener("change", () => {
@@ -1292,7 +1540,6 @@
                     });
                 }
 
-                // Area Safety Assessment Form Submission Handler
                 const safetyForm = document.getElementById("safetyAssessmentForm");
                 if (safetyForm) {
                     safetyForm.addEventListener("submit", async (e) => {
@@ -1377,7 +1624,7 @@
 
                     const senderEl = document.createElement("strong");
                     senderEl.textContent = (m.senderId === currentUserId) ? "You" : (m.senderName || "User");
-                    
+
                     const senderWrap = document.createElement("div");
                     senderWrap.style.display = "flex";
                     senderWrap.style.alignItems = "center";

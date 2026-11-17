@@ -29,8 +29,6 @@ public class NeedController {
         this.needService = needService;
     }
 
-    // --- Disasters Lookup ---
-
     @GetMapping("/disasters")
     public ResponseEntity<?> getActiveDisasters() {
         List<Disaster> disasters = needService.getActiveDisasters();
@@ -41,12 +39,16 @@ public class NeedController {
         return ResponseEntity.ok(body);
     }
 
-    // --- AI Preview (Category Classification, Priority & Duplicate Check) ---
-
+    /**
+     * Live Gemini AI Preview (Category Classification, Priority Scoring & Semantic
+     * Duplicate Check).
+     */
     @PostMapping("/needs/ai-analyze")
     public ResponseEntity<?> analyzeNeedWithAi(@RequestParam String description,
             @RequestParam(defaultValue = "1") int quantityRequired,
             @RequestParam(defaultValue = "1") int disasterId,
+            @RequestParam(required = false) Integer affectedPeopleCount,
+            @RequestParam(required = false) Integer criticalPeopleCount,
             HttpSession session) {
         if (session.getAttribute("loggedInUser") == null) {
             return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
@@ -55,30 +57,14 @@ public class NeedController {
             return buildError(HttpStatus.BAD_REQUEST, "Enter at least 5 characters for AI analysis.");
         }
 
-        String cleanDesc = description.trim();
-        String suggestedCategory = needService.classifyCategory(cleanDesc);
-        String suggestedUrgency = needService.recommendPriority(cleanDesc, quantityRequired);
-
-        List<String> existingDescriptions = new ArrayList<>();
-        for (Need n : needService.getAllNeeds()) {
-            if (n.getDisasterId() == disasterId && !"REJECTED".equalsIgnoreCase(n.getStatus())) {
-                existingDescriptions.add(n.getDescription());
-            }
-        }
-
-        Map<String, Object> dupCheck = needService.checkDuplicateNeed(cleanDesc, existingDescriptions);
+        Map<String, Object> aiResult = needService.analyzeNeedPreview(
+                disasterId, description.trim(), quantityRequired, affectedPeopleCount, criticalPeopleCount);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", 200);
-        body.put("suggestedCategory", suggestedCategory);
-        body.put("suggestedUrgency", suggestedUrgency);
-        body.put("isDuplicateSuspected", dupCheck.get("isDuplicate"));
-        body.put("similarityScore", dupCheck.get("similarity"));
+        body.putAll(aiResult);
         return ResponseEntity.ok(body);
     }
-
-    // --- Submit Relief Need (Affected Person or Department Officer on behalf of
-    // citizen) ---
 
     @PostMapping("/needs")
     public ResponseEntity<?> submitNeed(@RequestParam(defaultValue = "1") int disasterId,
@@ -128,8 +114,6 @@ public class NeedController {
         }
     }
 
-    // --- Department Verification (Approve / Reject / Flag Duplicate) ---
-
     @PostMapping("/needs/{needId}/verify")
     public ResponseEntity<?> verifyNeed(@PathVariable int needId,
             @RequestParam String decision,
@@ -157,8 +141,6 @@ public class NeedController {
             return buildError(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
-
-    // --- Need Feeds for Dashboards & Live Map ---
 
     @GetMapping("/needs")
     public ResponseEntity<?> getAllNeeds(@RequestParam(required = false) String status,

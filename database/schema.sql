@@ -142,7 +142,6 @@ CREATE TABLE users
                         DELETE CASCADE
 ) ENGINE=InnoDB;
 
-                        -- 7. Need Participants Table (Tracks Donor Participation Windows for Chat & Broadcasts)
                         CREATE TABLE need_participants
                         (
                             participant_id INT
@@ -240,6 +239,19 @@ CREATE TABLE users
                                         (user_id) ON
                                         DELETE CASCADE
 ) ENGINE=InnoDB;
+
+                                        ALTER TABLE allocations
+    MODIFY COLUMN status ENUM
+                                        ('ALLOCATED', 'IN_TRANSIT', 'DELIVERED', 'CONFIRMED', 'REASSIGNED', 'CANCELLED') NOT NULL DEFAULT 'ALLOCATED',
+                                        ADD COLUMN cancellation_reason TEXT NULL AFTER status,
+                                        ADD COLUMN cancelled_at TIMESTAMP NULL AFTER cancellation_reason,
+                                        ADD COLUMN confirmed_at TIMESTAMP NULL AFTER cancelled_at;
+
+                                        ALTER TABLE pledges
+    MODIFY COLUMN status ENUM
+                                        ('PLEDGED', 'PARTIALLY_ALLOCATED', 'ALLOCATED', 'CANCELLED', 'WITHDRAWN') NOT NULL DEFAULT 'PLEDGED',
+                                        ADD COLUMN cancellation_reason TEXT NULL AFTER status,
+                                        ADD COLUMN cancelled_at TIMESTAMP NULL AFTER cancellation_reason;
 
                                         -- ============================================================================
                                         -- SEED DATA FOR IMMEDIATE LOCAL TESTING

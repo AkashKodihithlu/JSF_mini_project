@@ -8,8 +8,17 @@ public class Pledge {
     private int donorId;
     private int quantityOffered;
     private int quantityAllocated;
-    private String status; // PLEDGED, PARTIALLY_ALLOCATED, ALLOCATED, CANCELLED
+    private String status; // PLEDGED, PARTIALLY_ALLOCATED, ALLOCATED, CANCELLED, WITHDRAWN
+    private String cancellationReason;
     private Timestamp createdAt;
+    private Timestamp cancelledAt;
+
+    // Optional joined display fields for Donor / Department views
+    private String donorName;
+    private String needCategory;
+    private String needDescription;
+    private String needUrgency;
+    private String needStatus;
 
     public int getPledgeId() {
         return pledgeId;
@@ -63,11 +72,67 @@ public class Pledge {
         this.status = status;
     }
 
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Timestamp getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(Timestamp cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public String getDonorName() {
+        return donorName;
+    }
+
+    public void setDonorName(String donorName) {
+        this.donorName = donorName;
+    }
+
+    public String getNeedCategory() {
+        return needCategory;
+    }
+
+    public void setNeedCategory(String needCategory) {
+        this.needCategory = needCategory;
+    }
+
+    public String getNeedDescription() {
+        return needDescription;
+    }
+
+    public void setNeedDescription(String needDescription) {
+        this.needDescription = needDescription;
+    }
+
+    public String getNeedUrgency() {
+        return needUrgency;
+    }
+
+    public void setNeedUrgency(String needUrgency) {
+        this.needUrgency = needUrgency;
+    }
+
+    public String getNeedStatus() {
+        return needStatus;
+    }
+
+    public void setNeedStatus(String needStatus) {
+        this.needStatus = needStatus;
     }
 }
