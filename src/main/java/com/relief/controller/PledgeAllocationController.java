@@ -67,6 +67,27 @@ public class PledgeAllocationController {
         }
     }
 
+    @PostMapping("/pledges/{pledgeId}/withdraw")
+    public ResponseEntity<?> withdrawPledge(@PathVariable int pledgeId, HttpSession session) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user == null) {
+            return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
+        }
+        if (!"DONOR".equals(user.getRole())) {
+            return buildError(HttpStatus.FORBIDDEN, "Only Donors can withdraw their pledges.");
+        }
+
+        try {
+            pledgeAllocationService.withdrawPledge(pledgeId, user.getUserId());
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", 200);
+            body.put("message", "Pledge #" + pledgeId + " withdrawn successfully.");
+            return ResponseEntity.ok(body);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return buildError(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
     @GetMapping("/pledges/my")
     public ResponseEntity<?> getMyPledges(HttpSession session) {
         User user = (User) session.getAttribute("loggedInUser");

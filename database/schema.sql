@@ -130,12 +130,27 @@ CREATE TABLE IF NOT EXISTS messages (
     need_id INT NOT NULL,
     sender_id INT NOT NULL,
     receiver_id INT NULL,
-    content TEXT NOT NULL,
+    message TEXT NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     read_status BOOLEAN DEFAULT FALSE,
+    message_type ENUM('DIRECT', 'BROADCAST') NOT NULL DEFAULT 'DIRECT',
     FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
     FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (receiver_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- 7b. NEED PARTICIPANTS (Historical Stakeholder Tracking)
+CREATE TABLE IF NOT EXISTS need_participants (
+    participant_id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL,
+    user_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    left_at TIMESTAMP NULL,
+    participation_status ENUM('ACTIVE', 'WITHDRAWN') DEFAULT 'ACTIVE',
+    FOREIGN KEY (need_id) REFERENCES needs(need_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    INDEX idx_np_need_user (need_id, user_id),
+    INDEX idx_np_status (participation_status)
 );
 
 -- 8. ALERTS

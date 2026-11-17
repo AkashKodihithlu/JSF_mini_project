@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,13 +30,20 @@ public class CommunicationController {
     }
 
     @GetMapping("/messages/{needId}")
-    public ResponseEntity<?> getMessages(@PathVariable int needId, HttpSession session) {
+    public ResponseEntity<?> getMessages(
+            @PathVariable int needId,
+            @RequestHeader(value = "X-Expected-User-Id", required = false) Integer expectedUserId,
+            HttpSession session) {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) {
             return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
         }
 
-        if (!communicationService.isUserAuthorizedForNeed(user, needId)) {
+        if (expectedUserId != null && expectedUserId != user.getUserId()) {
+            return buildError(HttpStatus.CONFLICT, "Session mismatch: active session does not match dashboard user. Please reload.");
+        }
+
+        if (!communicationService.isUserAuthorizedForNeedConversation(user, needId)) {
             return buildError(HttpStatus.FORBIDDEN, "You are not authorized to view messages for this relief need.");
         }
 
@@ -48,25 +56,32 @@ public class CommunicationController {
     }
 
     @PostMapping("/messages")
-    public ResponseEntity<?> postMessage(@RequestParam int needId,
+    public ResponseEntity<?> postMessage(
+            @RequestParam int needId,
             @RequestParam(required = false) Integer receiverId,
             @RequestParam(required = false) String content,
+            @RequestParam(required = false) String messageType,
+            @RequestHeader(value = "X-Expected-User-Id", required = false) Integer expectedUserId,
             HttpSession session) {
         User user = (User) session.getAttribute("loggedInUser");
         if (user == null) {
             return buildError(HttpStatus.UNAUTHORIZED, "Please sign in first.");
         }
 
+        if (expectedUserId != null && expectedUserId != user.getUserId()) {
+            return buildError(HttpStatus.CONFLICT, "Session mismatch: active session does not match dashboard user. Please reload.");
+        }
+
         if (content == null || content.trim().isEmpty()) {
             return buildError(HttpStatus.BAD_REQUEST, "Message cannot be empty.");
         }
 
-        if (!communicationService.isUserAuthorizedForNeed(user, needId)) {
+        if (!communicationService.isUserAuthorizedForNeedConversation(user, needId)) {
             return buildError(HttpStatus.FORBIDDEN, "You are not authorized to send messages on this relief need.");
         }
 
         try {
-            communicationService.sendNeedMessage(needId, user, receiverId, content.trim());
+            communicationService.sendNeedMessage(needId, user, receiverId, messageType, content.trim());
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("status", 201);
             body.put("message", "Message sent.");
@@ -91,7 +106,8 @@ public class CommunicationController {
     }
 
     @PostMapping("/alerts")
-    public ResponseEntity<?> createAlert(@RequestParam(defaultValue = "1") int disasterId,
+    public ResponseEntity<?> createAlert(
+            @RequestParam(defaultValue = "1") int disasterId,
             @RequestParam String title,
             @RequestParam String message,
             @RequestParam(required = false) Double latitude,

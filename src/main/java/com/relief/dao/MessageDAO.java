@@ -28,15 +28,22 @@ public class MessageDAO {
 
         String text = null;
         try {
-            text = rs.getString("content");
+            text = rs.getString("message");
         } catch (SQLException ignored) {}
         if (text == null) {
             try {
-                text = rs.getString("message");
+                text = rs.getString("content");
             } catch (SQLException ignored) {}
         }
         m.setContent(text != null ? text : "");
         m.setSentAt(rs.getTimestamp("sent_at"));
+
+        try {
+            String type = rs.getString("message_type");
+            m.setMessageType(type != null ? type : "DIRECT");
+        } catch (SQLException ignored) {
+            m.setMessageType(m.getReceiverId() == null ? "BROADCAST" : "DIRECT");
+        }
 
         try {
             m.setSenderName(rs.getString("sender_name"));
@@ -48,21 +55,33 @@ public class MessageDAO {
 
     public int save(Message message) {
         String content = message.getContent() != null ? message.getContent().trim() : "";
+        String type = message.getMessageType() != null ? message.getMessageType().trim().toUpperCase() : "DIRECT";
+        
         try {
             return jdbcTemplate.update(
-                    "INSERT INTO messages (need_id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO messages (need_id, sender_id, receiver_id, message, message_type) VALUES (?, ?, ?, ?, ?)",
                     message.getNeedId(),
                     message.getSenderId(),
                     message.getReceiverId(),
-                    content);
+                    content,
+                    type);
         } catch (DataAccessException e) {
-            // Fallback if table column is named 'message'
-            return jdbcTemplate.update(
-                    "INSERT INTO messages (need_id, sender_id, receiver_id, message) VALUES (?, ?, ?, ?)",
-                    message.getNeedId(),
-                    message.getSenderId(),
-                    message.getReceiverId(),
-                    content);
+            // Fallback for schemas without message_type or with content column
+            try {
+                return jdbcTemplate.update(
+                        "INSERT INTO messages (need_id, sender_id, receiver_id, message) VALUES (?, ?, ?, ?)",
+                        message.getNeedId(),
+                        message.getSenderId(),
+                        message.getReceiverId(),
+                        content);
+            } catch (DataAccessException e2) {
+                return jdbcTemplate.update(
+                        "INSERT INTO messages (need_id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)",
+                        message.getNeedId(),
+                        message.getSenderId(),
+                        message.getReceiverId(),
+                        content);
+            }
         }
     }
 

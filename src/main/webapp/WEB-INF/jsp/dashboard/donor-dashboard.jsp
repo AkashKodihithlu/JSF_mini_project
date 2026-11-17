@@ -379,12 +379,21 @@
                                         <td style="color: #fdba74;">${p.quantitySurplus}</td>
                                         <td><span class="badge score-pill">${p.status}</span></td>
                                         <td>
-                                            <button type="button" class="btn-outline-glass chat-open-btn"
-                                                    style="padding: 0.38rem 0.75rem; font-size: 0.8rem;"
-                                                    data-need-id="${p.needId}"
-                                                    data-need-title="Need #${p.needId}">
-                                                &#128172; Chat
-                                            </button>
+                                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                                <button type="button" class="btn-outline-glass chat-open-btn"
+                                                        style="padding: 0.38rem 0.75rem; font-size: 0.8rem;"
+                                                        data-need-id="${p.needId}"
+                                                        data-need-title="Need #${p.needId}">
+                                                    &#128172; Chat
+                                                </button>
+                                                <c:if test="${p.status != 'WITHDRAWN'}">
+                                                    <button type="button" class="btn-outline-glass withdraw-pledge-btn"
+                                                            style="padding: 0.38rem 0.6rem; font-size: 0.78rem; color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);"
+                                                            data-pledge-id="${p.pledgeId}">
+                                                        Withdraw
+                                                    </button>
+                                                </c:if>
+                                            </div>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -455,6 +464,35 @@
                 });
             });
 
+            document.querySelectorAll(".withdraw-pledge-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
+                    const pledgeId = btn.dataset.pledgeId;
+                    if (!confirm("Are you sure you want to withdraw pledge #" + pledgeId + "?")) {
+                        return;
+                    }
+                    btn.disabled = true;
+                    btn.textContent = "...";
+                    try {
+                        const res = await fetch(contextPath + "/api/pledges/" + pledgeId + "/withdraw", {
+                            method: "POST"
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            showDonorBanner("Pledge #" + pledgeId + " withdrawn successfully.", false);
+                            setTimeout(() => window.location.reload(), 800);
+                        } else {
+                            showDonorBanner(data.error || "Failed to withdraw pledge.", true);
+                            btn.disabled = false;
+                            btn.textContent = "Withdraw";
+                        }
+                    } catch (err) {
+                        showDonorBanner("Network error withdrawing pledge.", true);
+                        btn.disabled = false;
+                        btn.textContent = "Withdraw";
+                    }
+                });
+            });
+
             // Chat Modal
             let activeNeedId = null;
             let chatPollTimer = null;
@@ -485,7 +523,20 @@
 
                     const senderEl = document.createElement("strong");
                     senderEl.textContent = (m.senderId === currentUserId) ? "You" : (m.senderName || "User");
-                    headerEl.appendChild(senderEl);
+                    
+                    const senderWrap = document.createElement("div");
+                    senderWrap.style.display = "flex";
+                    senderWrap.style.alignItems = "center";
+                    senderWrap.style.gap = "0.35rem";
+                    senderWrap.appendChild(senderEl);
+
+                    if (m.messageType === "BROADCAST") {
+                        const bBadge = document.createElement("span");
+                        bBadge.textContent = "BROADCAST";
+                        bBadge.style.cssText = "font-size:0.6rem; background:rgba(234,179,8,0.2); color:#fde047; padding:1px 5px; border-radius:4px; font-weight:600; border:1px solid rgba(234,179,8,0.35);";
+                        senderWrap.appendChild(bBadge);
+                    }
+                    headerEl.appendChild(senderWrap);
 
                     if (m.sentAt) {
                         const timeEl = document.createElement("span");
@@ -514,8 +565,20 @@
                     chatHistory.innerHTML = "<div style='color:#94a3b8; text-align:center; padding:1.5rem 0;'>Loading messages...</div>";
                 }
                 try {
-                    const res = await fetch(contextPath + "/api/messages/" + needId);
+                    const res = await fetch(contextPath + "/api/messages/" + needId, {
+                        headers: { "X-Expected-User-Id": currentUserId }
+                    });
                     if (!res.ok) {
+                        if (res.status === 401 || res.status === 403 || res.status === 409) {
+                            stopChatPolling();
+                            const reason = res.status === 401
+                                ? "Session expired. Please log in again."
+                                : res.status === 409
+                                ? "Session user mismatch. Please refresh your page."
+                                : "You are not authorized to participate in this conversation.";
+                            chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center; padding:1rem 0; font-size:0.85rem;'>" + reason + "</div>";
+                            return;
+                        }
                         if (!isPolling) {
                             chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center;'>Unable to load messages (Status " + res.status + ").</div>";
                         }
@@ -589,15 +652,21 @@
                 try {
                     const res = await fetch(contextPath + "/api/messages", {
                         method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: new URLSearchParams({ needId: activeNeedId, content: text })
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-Expected-User-Id": currentUserId
+                        },
+                        body: new URLSearchParams({ needId: activeNeedId, content: text, messageType: "DIRECT" })
                     });
                     const data = await res.json();
                     if (res.ok) {
                         input.value = "";
                         await loadMessages(activeNeedId, false);
                     } else {
-                        alert(data.error || "Failed to send message.");
+                        if (res.status === 401 || res.status === 403 || res.status === 409) {
+                            stopChatPolling();
+                        }
+                        alert(data.error || ("Failed to send message (Status " + res.status + ")."));
                     }
                 } catch (err) {
                     alert("Network error sending message.");

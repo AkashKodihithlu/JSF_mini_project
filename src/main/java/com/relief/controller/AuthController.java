@@ -90,6 +90,7 @@ public class AuthController {
     @PostMapping("/auth/verify-otp")
     @ResponseBody
     public ResponseEntity<?> verifyOtp(@RequestParam String otp,
+            jakarta.servlet.http.HttpServletRequest request,
             HttpSession session) {
         String pendingMobile = (String) session.getAttribute("pendingMobile");
         if (pendingMobile == null) {
@@ -107,6 +108,9 @@ public class AuthController {
         body.put("status", 200);
 
         if (existingUser != null) {
+            try {
+                request.changeSessionId();
+            } catch (Exception ignored) {}
             session.setAttribute("loggedInUser", existingUser);
             body.put("message", "Login successful");
             body.put("isNewUser", false);
@@ -128,6 +132,7 @@ public class AuthController {
             @RequestParam String role,
             @RequestParam(defaultValue = "13.2150") double latitude,
             @RequestParam(defaultValue = "74.9960") double longitude,
+            jakarta.servlet.http.HttpServletRequest request,
             HttpSession session) {
         String verifiedMobile = (String) session.getAttribute("verifiedMobile");
         if (verifiedMobile == null) {
@@ -137,6 +142,9 @@ public class AuthController {
         try {
             User newUser = authService.registerNewUser(verifiedMobile, name, role, latitude, longitude);
             session.removeAttribute("verifiedMobile");
+            try {
+                request.changeSessionId();
+            } catch (Exception ignored) {}
             session.setAttribute("loggedInUser", newUser);
 
             Map<String, Object> body = new LinkedHashMap<>();

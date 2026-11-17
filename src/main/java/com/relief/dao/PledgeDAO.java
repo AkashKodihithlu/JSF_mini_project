@@ -86,4 +86,11 @@ public class PledgeDAO {
                 status.trim().toUpperCase(),
                 pledgeId);
     }
+
+    public int updateStatus(int pledgeId, String status) {
+        return jdbcTemplate.update(
+                "UPDATE pledges SET status = ? WHERE pledge_id = ?",
+                status.trim().toUpperCase(),
+                pledgeId);
+    }
 }

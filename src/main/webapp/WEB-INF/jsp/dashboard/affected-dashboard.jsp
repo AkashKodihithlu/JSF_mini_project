@@ -860,7 +860,20 @@ uri="jakarta.tags.functions" %>
 
             const senderEl = document.createElement("strong");
             senderEl.textContent = (m.senderId === currentUserId) ? "You" : (m.senderName || ("User #" + m.senderId));
-            headerEl.appendChild(senderEl);
+            
+            const senderWrap = document.createElement("div");
+            senderWrap.style.display = "flex";
+            senderWrap.style.alignItems = "center";
+            senderWrap.style.gap = "0.35rem";
+            senderWrap.appendChild(senderEl);
+
+            if (m.messageType === "BROADCAST") {
+              const bBadge = document.createElement("span");
+              bBadge.textContent = "BROADCAST";
+              bBadge.style.cssText = "font-size:0.6rem; background:rgba(234,179,8,0.2); color:#fde047; padding:1px 5px; border-radius:4px; font-weight:600; border:1px solid rgba(234,179,8,0.35);";
+              senderWrap.appendChild(bBadge);
+            }
+            headerEl.appendChild(senderWrap);
 
             const metaRight = document.createElement("div");
             metaRight.style.display = "flex";
@@ -908,8 +921,21 @@ uri="jakarta.tags.functions" %>
               "<div style='color:#94a3b8; text-align:center; padding:1.5rem 0;'>Loading messages...</div>";
           }
           try {
-            const res = await fetch(contextPath + "/api/messages/" + needId);
+            const res = await fetch(contextPath + "/api/messages/" + needId, {
+              headers: { "X-Expected-User-Id": currentUserId }
+            });
             if (!res.ok) {
+              if (res.status === 401 || res.status === 403 || res.status === 409) {
+                stopChatPolling();
+                const reason = res.status === 401
+                  ? "Session expired. Please log in again."
+                  : res.status === 409
+                  ? "Session user mismatch. Please refresh your page."
+                  : "You are not authorized to participate in this conversation.";
+                chatHistory.innerHTML =
+                  "<div style='color:#fca5a5; text-align:center; padding:1rem 0; font-size:0.85rem;'>" + reason + "</div>";
+                return;
+              }
               if (!isPolling) {
                 chatHistory.innerHTML =
                   "<div style='color:#fca5a5; text-align:center;'>Unable to load messages (Status " + res.status + ").</div>";
@@ -992,6 +1018,7 @@ uri="jakarta.tags.functions" %>
               const bodyParams = {
                 needId: activeNeedId,
                 content: text,
+                messageType: activeReceiverId ? "DIRECT" : "BROADCAST"
               };
               if (activeReceiverId) {
                 bodyParams.receiverId = activeReceiverId;
@@ -1000,6 +1027,7 @@ uri="jakarta.tags.functions" %>
                 method: "POST",
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
+                  "X-Expected-User-Id": currentUserId
                 },
                 body: new URLSearchParams(bodyParams),
               });
@@ -1008,7 +1036,10 @@ uri="jakarta.tags.functions" %>
                 input.value = "";
                 await loadMessages(activeNeedId, false);
               } else {
-                alert(data.error || "Failed to send message.");
+                if (res.status === 401 || res.status === 403 || res.status === 409) {
+                  stopChatPolling();
+                }
+                alert(data.error || ("Failed to send message (Status " + res.status + ")."));
               }
             } catch (err) {
               alert("Network error sending message.");
