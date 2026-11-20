@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %> <%@ taglib
 prefix="c" uri="jakarta.tags.core" %> <%@ taglib prefix="fn"
-uri="jakarta.tags.functions" %>
+uri="jakarta.tags.functions" %> <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"
+%>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -98,17 +99,12 @@ uri="jakarta.tags.functions" %>
         color: #ffffff;
         margin-top: 0.25rem;
       }
-      .workspace-grid {
-        display: grid;
-        grid-template-columns: 420px 1fr;
-        gap: 1.75rem;
-        align-items: start;
-      }
       .panel-card {
         background: var(--navy-900);
         border: 1px solid var(--border-glass);
         border-radius: 12px;
         padding: 1.5rem;
+        margin-bottom: 2rem;
       }
       .panel-card h2 {
         font-size: 1.45rem;
@@ -120,6 +116,169 @@ uri="jakarta.tags.functions" %>
         color: var(--text-muted);
         margin-bottom: 1.25rem;
       }
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 1.75rem;
+        align-items: start;
+      }
+
+      /* Horizontal Connection Timeline Cards */
+      .timeline-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+      }
+      .conn-card {
+        background: var(--navy-950);
+        border: 1px solid var(--border-glass);
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        transition: border-color 0.2s ease;
+      }
+      .conn-card.is-confirmed {
+        border-color: rgba(74, 222, 128, 0.45);
+      }
+      .conn-card.is-cancelled {
+        border-color: rgba(248, 113, 113, 0.45);
+        background: rgba(15, 23, 42, 0.75);
+      }
+      .conn-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.1rem;
+      }
+      .conn-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-top: 0.3rem;
+      }
+      .htl-track {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: relative;
+        margin: 1.15rem 0 0.85rem;
+        padding: 0 0.5rem;
+      }
+      .htl-step {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        z-index: 1;
+      }
+      .htl-step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        width: 100%;
+        height: 3px;
+        background: rgba(148, 163, 184, 0.22);
+        z-index: -1;
+      }
+      .htl-step.done:not(:last-child)::after {
+        background: linear-gradient(90deg, #38bdf8, #4ade80);
+      }
+      .htl-step.active:not(:last-child)::after {
+        background: linear-gradient(
+          90deg,
+          #38bdf8 35%,
+          rgba(148, 163, 184, 0.22) 100%
+        );
+      }
+      .htl-dot {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+        font-weight: 700;
+        background: #0f172a;
+        border: 2px solid rgba(148, 163, 184, 0.35);
+        color: #94a3b8;
+        margin-bottom: 0.45rem;
+      }
+      .htl-step.done .htl-dot {
+        background: rgba(22, 163, 74, 0.25);
+        border-color: #4ade80;
+        color: #4ade80;
+      }
+      .htl-step.active .htl-dot {
+        background: rgba(14, 165, 233, 0.25);
+        border-color: #38bdf8;
+        color: #e0f2fe;
+        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+      }
+      .htl-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #cbd5e1;
+      }
+      .htl-step.done .htl-label {
+        color: #86efac;
+      }
+      .htl-step.active .htl-label {
+        color: #38bdf8;
+      }
+      .htl-sub {
+        font-size: 0.71rem;
+        color: #94a3b8;
+        margin-top: 0.15rem;
+        max-width: 150px;
+      }
+      .cancel-callout {
+        background: rgba(153, 27, 27, 0.22);
+        border: 1px solid rgba(248, 113, 113, 0.45);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 0.65rem 0;
+        font-size: 0.84rem;
+        color: #fecaca;
+      }
+      .conn-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 0.65rem;
+      }
+      .confirm-received-btn {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        border: 1px solid #86efac;
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(22, 163, 74, 0.32);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+      }
+      .confirm-received-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45);
+      }
+      .confirm-received-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Form & Table Styles */
       .form-field {
         margin-bottom: 1rem;
       }
@@ -160,17 +319,18 @@ uri="jakarta.tags.functions" %>
         padding: 0.85rem;
         margin-bottom: 1rem;
         font-size: 0.84rem;
+        line-height: 1.45;
         display: none;
       }
       .msg-banner {
-        padding: 0.75rem 0.95rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        margin-bottom: 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        font-size: 0.86rem;
+        margin-bottom: 1.15rem;
         display: none;
       }
       .msg-ok {
-        background: rgba(22, 101, 52, 0.88);
+        background: rgba(22, 101, 52, 0.9);
         border: 1px solid #86efac;
         color: #dcfce7;
       }
@@ -207,6 +367,11 @@ uri="jakarta.tags.functions" %>
         font-size: 0.73rem;
         font-weight: 700;
         text-transform: uppercase;
+      }
+      .score-pill {
+        background: rgba(14, 165, 233, 0.2);
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        color: #7dd3fc;
       }
       .urg-CRITICAL {
         background: rgba(220, 38, 38, 0.25);
@@ -290,6 +455,23 @@ uri="jakarta.tags.functions" %>
       @media (max-width: 960px) {
         .workspace-grid {
           grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .htl-track {
+          grid-template-columns: 1fr;
+          gap: 0.85rem;
+        }
+        .htl-step:not(:last-child)::after {
+          display: none;
+        }
+        .htl-step {
+          flex-direction: row;
+          text-align: left;
+          gap: 0.75rem;
+        }
+        .htl-sub {
+          max-width: none;
         }
       }
     </style>
@@ -394,8 +576,8 @@ uri="jakarta.tags.functions" %>
           <strong style="color: #fde047">${pendingCnt}</strong>
         </div>
         <div class="kpi-card">
-          <span>Verified &amp; Matching</span>
-          <strong style="color: #38bdf8">${activeCnt}</strong>
+          <span>Active Donor Connections</span>
+          <strong style="color: #38bdf8">${fn:length(myAllocations)}</strong>
         </div>
         <div class="kpi-card">
           <span>Fulfilled Requests</span>
@@ -403,13 +585,256 @@ uri="jakarta.tags.functions" %>
         </div>
       </section>
 
+      <div id="globalCitizenBanner" class="msg-banner"></div>
+
+      <!-- Incoming Relief Connections & Horizontal Delivery Timelines -->
+      <section class="panel-card">
+        <h2>Incoming Relief &amp; Delivery Timelines</h2>
+        <p class="panel-sub">
+          Track every connected donor in real time. Once supplies reach you,
+          click <strong>Confirm Received</strong> to verify the need is reached.
+        </p>
+
+        <c:choose>
+          <c:when test="${empty myAllocations}">
+            <p
+              style="
+                color: var(--text-muted);
+                text-align: center;
+                padding: 1.25rem 0;
+              "
+            >
+              No donors connected yet. Once your request is verified and matched
+              with a donor, your live horizontal delivery timeline will appear
+              here.
+            </p>
+          </c:when>
+          <c:otherwise>
+            <div class="timeline-list">
+              <c:forEach var="al" items="${myAllocations}">
+                <c:set var="stepNum" value="1" />
+                <c:if test="${al.status == 'IN_TRANSIT'}"
+                  ><c:set var="stepNum" value="2"
+                /></c:if>
+                <c:if test="${al.status == 'DELIVERED'}"
+                  ><c:set var="stepNum" value="3"
+                /></c:if>
+                <c:if test="${al.status == 'CONFIRMED'}"
+                  ><c:set var="stepNum" value="4"
+                /></c:if>
+                <c:if test="${al.status == 'CANCELLED'}"
+                  ><c:set var="stepNum" value="-1"
+                /></c:if>
+
+                <div
+                  class="conn-card ${al.status == 'CONFIRMED' ? 'is-confirmed' : (al.status == 'CANCELLED' ? 'is-cancelled' : '')}"
+                >
+                  <div class="conn-header">
+                    <div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          gap: 0.6rem;
+                          flex-wrap: wrap;
+                        "
+                      >
+                        <strong style="font-size: 1.1rem; color: #ffffff">
+                          <c:out value="${al.needCategory}" /> (Need
+                          #${al.needId})
+                        </strong>
+                        <span class="badge score-pill"
+                          >${al.quantityAllocated} Units Incoming</span
+                        >
+                        <c:if test="${not empty al.needUrgency}">
+                          <span class="badge urg-${al.needUrgency}"
+                            >${al.needUrgency}</span
+                          >
+                        </c:if>
+                      </div>
+                      <div class="conn-meta">
+                        <span>
+                          Donor:
+                          <strong style="color: #e2e8f0"
+                            ><c:out
+                              value="${not empty al.donorName ? al.donorName : 'Relief Donor'}"
+                          /></strong>
+                          <c:if test="${not empty al.donorMobile}">
+                            (+91-<c:out value="${al.donorMobile}" />)</c:if
+                          >
+                        </span>
+                        <c:if test="${not empty al.allocatedAt}">
+                          <span
+                            >&bull; Connected:
+                            <fmt:formatDate
+                              value="${al.allocatedAt}"
+                              pattern="dd MMM, HH:mm"
+                          /></span>
+                        </c:if>
+                      </div>
+                    </div>
+
+                    <div
+                      style="display: flex; gap: 0.5rem; align-items: center"
+                    >
+                      <button
+                        type="button"
+                        class="btn-outline-glass chat-open-btn"
+                        style="padding: 0.42rem 0.85rem; font-size: 0.8rem"
+                        data-need-id="${al.needId}"
+                        data-need-title="${fn:escapeXml(al.needCategory)}"
+                        data-donor-id="${al.donorId}"
+                        data-donor-name="${fn:escapeXml(al.donorName)}"
+                      >
+                        &#128172; Message Donor
+                      </button>
+                    </div>
+                  </div>
+
+                  <c:choose>
+                    <c:when test="${al.status == 'CANCELLED'}">
+                      <div class="cancel-callout">
+                        <strong>&#10006; Donor Cancelled This Delivery</strong>
+                        <c:if test="${not empty al.cancelledAt}">
+                          (<fmt:formatDate
+                            value="${al.cancelledAt}"
+                            pattern="dd MMM, HH:mm"
+                          />)
+                        </c:if>
+                        <div style="margin-top: 0.3rem; color: #fee2e2">
+                          <strong>Donor's Reason:</strong> &ldquo;<c:out
+                            value="${not empty al.cancellationReason ? al.cancellationReason : 'Cancelled by donor'}"
+                          />&rdquo;
+                        </div>
+                        <div
+                          style="
+                            margin-top: 0.35rem;
+                            font-size: 0.78rem;
+                            color: #fecaca;
+                          "
+                        >
+                          Your request has been automatically reopened so
+                          another nearby donor can fulfill these
+                          ${al.quantityAllocated} units.
+                        </div>
+                      </div>
+                    </c:when>
+                    <c:otherwise>
+                      <!-- 4-Stage Horizontal Stepper -->
+                      <div class="htl-track">
+                        <div
+                          class="htl-step ${stepNum > 1 ? 'done' : (stepNum == 1 ? 'active' : '')}"
+                        >
+                          <div class="htl-dot">
+                            ${stepNum > 1 ? '&#10003;' : '1'}
+                          </div>
+                          <div class="htl-label">Connected</div>
+                          <div class="htl-sub">
+                            Donor matched to your request
+                          </div>
+                        </div>
+
+                        <div
+                          class="htl-step ${stepNum > 2 ? 'done' : (stepNum == 2 ? 'active' : '')}"
+                        >
+                          <div class="htl-dot">
+                            ${stepNum > 2 ? '&#10003;' : '2'}
+                          </div>
+                          <div class="htl-label">In Transit</div>
+                          <div class="htl-sub">Donor dispatched supplies</div>
+                        </div>
+
+                        <div
+                          class="htl-step ${stepNum > 3 ? 'done' : (stepNum == 3 ? 'active' : '')}"
+                        >
+                          <div class="htl-dot">
+                            ${stepNum > 3 ? '&#10003;' : '3'}
+                          </div>
+                          <div class="htl-label">At Drop-Off</div>
+                          <div class="htl-sub">Arrived at your location</div>
+                        </div>
+
+                        <div class="htl-step ${stepNum == 4 ? 'done' : ''}">
+                          <div class="htl-dot">
+                            ${stepNum == 4 ? '&#10003;' : '4'}
+                          </div>
+                          <div class="htl-label">Need Reached</div>
+                          <div class="htl-sub">
+                            <c:choose>
+                              <c:when test="${stepNum == 4}">
+                                Receipt confirmed
+                                <c:if test="${not empty al.confirmedAt}">
+                                  (<fmt:formatDate
+                                    value="${al.confirmedAt}"
+                                    pattern="dd MMM, HH:mm"
+                                  />)
+                                </c:if>
+                              </c:when>
+                              <c:otherwise>Confirm once received</c:otherwise>
+                            </c:choose>
+                          </div>
+                        </div>
+                      </div>
+                    </c:otherwise>
+                  </c:choose>
+
+                  <div class="conn-footer">
+                    <div style="font-size: 0.8rem; color: #94a3b8">
+                      <c:choose>
+                        <c:when test="${al.status == 'ALLOCATED'}">
+                          Donor is preparing your ${al.quantityAllocated} units
+                          for dispatch.
+                        </c:when>
+                        <c:when test="${al.status == 'IN_TRANSIT'}">
+                          Supplies are currently in transit to your location.
+                        </c:when>
+                        <c:when test="${al.status == 'DELIVERED'}">
+                          <span style="color: #7dd3fc; font-weight: 600"
+                            >Supplies have arrived! Please confirm receipt
+                            below.</span
+                          >
+                        </c:when>
+                        <c:when test="${al.status == 'CONFIRMED'}">
+                          <span style="color: #4ade80; font-weight: 600"
+                            >&#10003; Confirmed: Relief supplies received and
+                            need reached.</span
+                          >
+                        </c:when>
+                        <c:when test="${al.status == 'CANCELLED'}">
+                          Status: Reopened in donor matching queue.
+                        </c:when>
+                      </c:choose>
+                    </div>
+
+                    <div>
+                      <c:if
+                        test="${al.status == 'ALLOCATED' || al.status == 'IN_TRANSIT' || al.status == 'DELIVERED'}"
+                      >
+                        <button
+                          type="button"
+                          class="confirm-received-btn"
+                          data-allocation-id="${al.allocationId}"
+                          data-need-id="${al.needId}"
+                        >
+                          &#10003; Confirm Received (Need Reached)
+                        </button>
+                      </c:if>
+                    </div>
+                  </div>
+                </div>
+              </c:forEach>
+            </div>
+          </c:otherwise>
+        </c:choose>
+      </section>
+
       <div class="workspace-grid">
         <!-- Left: Submit Relief Need Form -->
         <section class="panel-card">
           <h2>Report Relief Need</h2>
           <p class="panel-sub">
-            Submit urgent supply requirements. AI can auto-detect category,
-            priority, and duplicates.
+            Submit urgent supply requirements. Live Gemini AI auto-classifies
+            category, priority, and semantic duplicates.
           </p>
 
           <div id="needStatusBanner" class="msg-banner"></div>
@@ -470,19 +895,58 @@ uri="jakarta.tags.functions" %>
               </div>
             </div>
 
-            <div class="form-field">
-              <label for="quantityRequired"
-                >Quantity Required (Units / Kits / Liters)</label
-              >
-              <input
-                type="number"
-                id="quantityRequired"
-                name="quantityRequired"
-                class="dark-input"
-                min="1"
-                value="10"
-                required
-              />
+            <div class="two-col">
+              <div class="form-field">
+                <label for="quantityRequired">Quantity Required</label>
+                <input
+                  type="number"
+                  id="quantityRequired"
+                  name="quantityRequired"
+                  class="dark-input"
+                  min="1"
+                  value="10"
+                  required
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="locationName">Landmark / Ward (Opt.)</label>
+                <input
+                  type="text"
+                  id="locationName"
+                  name="locationName"
+                  class="dark-input"
+                  placeholder="e.g. Ward 4 Hall"
+                />
+              </div>
+            </div>
+
+            <div class="two-col">
+              <div class="form-field">
+                <label for="affectedPeopleCount">Total People Affected</label>
+                <input
+                  type="number"
+                  id="affectedPeopleCount"
+                  name="affectedPeopleCount"
+                  class="dark-input"
+                  min="0"
+                  placeholder="e.g. 15"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="criticalPeopleCount"
+                  >Critical / Elderly / Infants</label
+                >
+                <input
+                  type="number"
+                  id="criticalPeopleCount"
+                  name="criticalPeopleCount"
+                  class="dark-input"
+                  min="0"
+                  placeholder="e.g. 3"
+                />
+              </div>
             </div>
 
             <div class="form-field">
@@ -530,7 +994,7 @@ uri="jakarta.tags.functions" %>
                 class="btn-outline-glass"
                 style="flex: 1"
               >
-                &#129302; AI Preview
+                &#10024; AI Preview
               </button>
               <button
                 type="submit"
@@ -654,6 +1118,37 @@ uri="jakarta.tags.functions" %>
           </button>
         </div>
         <div id="chatHistory" class="chat-history"></div>
+        <div
+          id="replyingToBanner"
+          style="
+            display: none;
+            font-size: 0.8rem;
+            color: #7dd3fc;
+            margin-bottom: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <span>Replying to: <strong id="replyingToName"></strong></span>
+          <button
+            type="button"
+            id="cancelReplyBtn"
+            style="
+              background: none;
+              border: none;
+              color: #fca5a5;
+              cursor: pointer;
+              font-size: 0.75rem;
+              text-decoration: underline;
+            "
+          >
+            &times; Clear (Send to all)
+          </button>
+        </div>
         <form id="sendChatForm" style="display: flex; gap: 0.5rem">
           <input
             type="text"
@@ -680,6 +1175,7 @@ uri="jakarta.tags.functions" %>
         const contextPath = document.body.dataset.contextPath || "";
         const currentUserId = Number(document.body.dataset.userId || 0);
         const banner = document.getElementById("needStatusBanner");
+        const globalBanner = document.getElementById("globalCitizenBanner");
         const aiBox = document.getElementById("aiPreviewBox");
 
         function showBanner(msg, isError) {
@@ -688,12 +1184,73 @@ uri="jakarta.tags.functions" %>
           banner.style.display = "block";
         }
 
+        function showGlobalBanner(msg, isError) {
+          globalBanner.textContent = msg;
+          globalBanner.className =
+            "msg-banner " + (isError ? "msg-err" : "msg-ok");
+          globalBanner.style.display = "block";
+          globalBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        // Citizen Confirm Received (Need Reached)
+        document.querySelectorAll(".confirm-received-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const allocationId = btn.dataset.allocationId;
+            if (
+              !confirm(
+                "Confirm that you have physically received these relief supplies?"
+              )
+            ) {
+              return;
+            }
+            btn.disabled = true;
+            btn.textContent = "Confirming...";
+
+            try {
+              const res = await fetch(
+                contextPath +
+                  "/api/allocations/" +
+                  allocationId +
+                  "/confirm-received",
+                { method: "POST" }
+              );
+              const data = await res.json();
+              if (res.ok) {
+                showGlobalBanner(
+                  data.message ||
+                    "Receipt confirmed! Relief timeline marked as Need Reached.",
+                  false
+                );
+                setTimeout(() => window.location.reload(), 850);
+              } else {
+                showGlobalBanner(
+                  data.error || "Could not confirm receipt.",
+                  true
+                );
+                btn.disabled = false;
+                btn.textContent = "\u2713 Confirm Received (Need Reached)";
+              }
+            } catch (err) {
+              showGlobalBanner("Network error confirming receipt.", true);
+              btn.disabled = false;
+              btn.textContent = "\u2713 Confirm Received (Need Reached)";
+            }
+          });
+        });
+
+        // Live Gemini AI Preview
         document
           .getElementById("aiAnalyzeBtn")
           .addEventListener("click", async () => {
             const desc = document.getElementById("description").value.trim();
             const qty = document.getElementById("quantityRequired").value;
             const disasterId = document.getElementById("disasterId").value;
+            const affectedCnt = document.getElementById(
+              "affectedPeopleCount"
+            ).value;
+            const criticalCnt = document.getElementById(
+              "criticalPeopleCount"
+            ).value;
 
             if (desc.length < 5) {
               showBanner(
@@ -705,7 +1262,17 @@ uri="jakarta.tags.functions" %>
 
             aiBox.style.display = "block";
             aiBox.textContent =
-              "Running AI classification & duplicate check...";
+              "Running live AI triage, priority scoring & semantic duplicate check...";
+
+            const params = new URLSearchParams({
+              description: desc,
+              quantityRequired: qty,
+              disasterId: disasterId,
+            });
+            if (affectedCnt !== "")
+              params.append("affectedPeopleCount", affectedCnt);
+            if (criticalCnt !== "")
+              params.append("criticalPeopleCount", criticalCnt);
 
             try {
               const res = await fetch(contextPath + "/api/needs/ai-analyze", {
@@ -713,24 +1280,23 @@ uri="jakarta.tags.functions" %>
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: new URLSearchParams({
-                  description: desc,
-                  quantityRequired: qty,
-                  disasterId: disasterId,
-                }),
+                body: params,
               });
               const data = await res.json();
               if (res.ok) {
+                const simPct = ((data.similarityScore || 0) * 100).toFixed(0);
                 const dupFlag = data.isDuplicateSuspected
                   ? "Warning: Potential duplicate detected (Similarity: " +
-                    (data.similarityScore * 100).toFixed(0) +
+                    simPct +
                     "%)"
-                  : "Unique request (Similarity: " +
-                    (data.similarityScore * 100).toFixed(0) +
-                    "%)";
+                  : "Unique request (Similarity: " + simPct + "%)";
+
                 aiBox.textContent = "";
                 const strongEl = document.createElement("strong");
-                strongEl.textContent = "AI Recommendation: ";
+                strongEl.textContent =
+                  data.aiSource === "GEMINI_LIVE"
+                    ? "\u2728 Gemini AI Triage: "
+                    : "AI Triage: ";
                 aiBox.appendChild(strongEl);
                 aiBox.appendChild(
                   document.createTextNode(
@@ -742,6 +1308,14 @@ uri="jakarta.tags.functions" %>
                 );
                 aiBox.appendChild(document.createElement("br"));
                 aiBox.appendChild(document.createTextNode(dupFlag));
+
+                if (data.aiReasoning) {
+                  aiBox.appendChild(document.createElement("br"));
+                  const reasonSpan = document.createElement("span");
+                  reasonSpan.style.color = "#bae6fd";
+                  reasonSpan.textContent = "Insight: " + data.aiReasoning;
+                  aiBox.appendChild(reasonSpan);
+                }
               } else {
                 aiBox.textContent = data.error || "AI analysis unavailable.";
               }
@@ -768,6 +1342,16 @@ uri="jakarta.tags.functions" %>
               latitude: document.getElementById("latitude").value,
               longitude: document.getElementById("longitude").value,
             });
+            const locName = document
+              .getElementById("locationName")
+              .value.trim();
+            const affCnt = document.getElementById("affectedPeopleCount").value;
+            const critCnt = document.getElementById(
+              "criticalPeopleCount"
+            ).value;
+            if (locName) params.append("locationName", locName);
+            if (affCnt !== "") params.append("affectedPeopleCount", affCnt);
+            if (critCnt !== "") params.append("criticalPeopleCount", critCnt);
 
             try {
               const res = await fetch(contextPath + "/api/needs", {
@@ -794,58 +1378,236 @@ uri="jakarta.tags.functions" %>
 
         // Chat Modal Logic
         let activeNeedId = null;
+        let activeReceiverId = null;
+        let chatPollTimer = null;
         const chatModal = document.getElementById("chatModal");
         const chatHistory = document.getElementById("chatHistory");
+        const replyingBanner = document.getElementById("replyingToBanner");
+        const replyingName = document.getElementById("replyingToName");
+        const cancelReplyBtn = document.getElementById("cancelReplyBtn");
 
-        async function loadMessages(needId) {
-          chatHistory.innerHTML =
-            "<div style='color:#94a3b8;'>Loading messages...</div>";
+        function setReplyRecipient(id, name) {
+          activeReceiverId = id;
+          if (replyingBanner && replyingName) {
+            replyingName.textContent = name;
+            replyingBanner.style.display = "flex";
+          }
+          const input = document.getElementById("chatInput");
+          if (input) {
+            input.placeholder = "Replying directly to " + name + "...";
+            input.focus();
+          }
+        }
+
+        function clearReplyRecipient() {
+          activeReceiverId = null;
+          if (replyingBanner) {
+            replyingBanner.style.display = "none";
+          }
+          const input = document.getElementById("chatInput");
+          if (input) {
+            input.placeholder = "Write message to donors / relief team...";
+          }
+        }
+
+        if (cancelReplyBtn) {
+          cancelReplyBtn.addEventListener("click", clearReplyRecipient);
+        }
+
+        function renderMessages(messages) {
+          chatHistory.innerHTML = "";
+          if (!messages || messages.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.textAlign = "center";
+            emptyEl.style.padding = "1.5rem 0";
+            emptyEl.textContent = "No messages yet. Start coordinating below.";
+            chatHistory.appendChild(emptyEl);
+            return;
+          }
+          messages.forEach((m) => {
+            const bubble = document.createElement("div");
+            bubble.className =
+              "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
+
+            const headerEl = document.createElement("div");
+            headerEl.style.fontSize = "0.72rem";
+            headerEl.style.marginBottom = "0.2rem";
+            headerEl.style.display = "flex";
+            headerEl.style.justifyContent = "space-between";
+            headerEl.style.gap = "0.5rem";
+
+            const senderEl = document.createElement("strong");
+            senderEl.textContent =
+              m.senderId === currentUserId
+                ? "You"
+                : m.senderName || "User #" + m.senderId;
+
+            const senderWrap = document.createElement("div");
+            senderWrap.style.display = "flex";
+            senderWrap.style.alignItems = "center";
+            senderWrap.style.gap = "0.35rem";
+            senderWrap.appendChild(senderEl);
+
+            if (m.messageType === "BROADCAST") {
+              const bBadge = document.createElement("span");
+              bBadge.textContent = "BROADCAST";
+              bBadge.style.cssText =
+                "font-size:0.6rem; background:rgba(234,179,8,0.2); color:#fde047; padding:1px 5px; border-radius:4px; font-weight:600; border:1px solid rgba(234,179,8,0.35);";
+              senderWrap.appendChild(bBadge);
+            }
+            headerEl.appendChild(senderWrap);
+
+            const metaRight = document.createElement("div");
+            metaRight.style.display = "flex";
+            metaRight.style.alignItems = "center";
+            metaRight.style.gap = "0.4rem";
+
+            if (m.senderId !== currentUserId) {
+              const replyBtn = document.createElement("button");
+              replyBtn.type = "button";
+              replyBtn.textContent = "\u21a9 Reply";
+              replyBtn.style.cssText =
+                "background:rgba(255,255,255,0.08); border:none; color:#38bdf8; font-size:0.68rem; padding:1px 6px; border-radius:4px; cursor:pointer;";
+              replyBtn.title = "Direct reply to this sender";
+              replyBtn.onclick = () => {
+                setReplyRecipient(
+                  m.senderId,
+                  m.senderName || "User #" + m.senderId
+                );
+              };
+              metaRight.appendChild(replyBtn);
+            }
+
+            if (m.sentAt) {
+              const timeEl = document.createElement("span");
+              timeEl.style.color = "#94a3b8";
+              timeEl.style.fontSize = "0.68rem";
+              try {
+                const d = new Date(m.sentAt);
+                timeEl.textContent = d.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+              } catch (e) {}
+              metaRight.appendChild(timeEl);
+            }
+            headerEl.appendChild(metaRight);
+            bubble.appendChild(headerEl);
+
+            const contentEl = document.createElement("div");
+            contentEl.textContent = m.content || "";
+            bubble.appendChild(contentEl);
+
+            chatHistory.appendChild(bubble);
+          });
+          chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function loadMessages(needId, isPolling = false) {
+          if (!needId) return;
+          if (!isPolling && chatHistory.children.length === 0) {
+            chatHistory.innerHTML =
+              "<div style='color:#94a3b8; text-align:center; padding:1.5rem 0;'>Loading messages...</div>";
+          }
           try {
-            const res = await fetch(contextPath + "/api/messages/" + needId);
-            const data = await res.json();
-            chatHistory.innerHTML = "";
-            if (!data.messages || data.messages.length === 0) {
-              const emptyEl = document.createElement("div");
-              emptyEl.style.color = "#94a3b8";
-              emptyEl.textContent =
-                "No messages yet. Start coordinating below.";
-              chatHistory.appendChild(emptyEl);
+            const res = await fetch(contextPath + "/api/messages/" + needId, {
+              headers: { "X-Expected-User-Id": currentUserId },
+            });
+            if (!res.ok) {
+              if (
+                res.status === 401 ||
+                res.status === 403 ||
+                res.status === 409
+              ) {
+                stopChatPolling();
+                const reason =
+                  res.status === 401
+                    ? "Session expired. Please log in again."
+                    : res.status === 409
+                    ? "Session user mismatch. Please refresh your page."
+                    : "You are not authorized to participate in this conversation.";
+                chatHistory.innerHTML =
+                  "<div style='color:#fca5a5; text-align:center; padding:1rem 0; font-size:0.85rem;'>" +
+                  reason +
+                  "</div>";
+                return;
+              }
+              if (!isPolling) {
+                chatHistory.innerHTML =
+                  "<div style='color:#fca5a5; text-align:center;'>Unable to load messages (Status " +
+                  res.status +
+                  ").</div>";
+              }
               return;
             }
-            data.messages.forEach((m) => {
-              const bubble = document.createElement("div");
-              bubble.className =
-                "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
-
-              const senderEl = document.createElement("strong");
-              senderEl.textContent = (m.senderName || "User") + ": ";
-              bubble.appendChild(senderEl);
-              bubble.appendChild(document.createTextNode(m.content || ""));
-
-              chatHistory.appendChild(bubble);
-            });
-            chatHistory.scrollTop = chatHistory.scrollHeight;
+            const data = await res.json();
+            renderMessages(data.messages || []);
           } catch (err) {
-            chatHistory.innerHTML =
-              "<div style='color:#fca5a5;'>Unable to load messages.</div>";
+            if (!isPolling) {
+              chatHistory.innerHTML =
+                "<div style='color:#fca5a5; text-align:center;'>Network error loading messages.</div>";
+            }
           }
+        }
+
+        function startChatPolling(needId) {
+          stopChatPolling();
+          chatPollTimer = setInterval(() => {
+            if (activeNeedId && chatModal.style.display !== "none") {
+              loadMessages(activeNeedId, true);
+            } else {
+              stopChatPolling();
+            }
+          }, 2500);
+        }
+
+        function stopChatPolling() {
+          if (chatPollTimer) {
+            clearInterval(chatPollTimer);
+            chatPollTimer = null;
+          }
+        }
+
+        function closeChatModal() {
+          chatModal.style.display = "none";
+          stopChatPolling();
+          clearReplyRecipient();
+          activeNeedId = null;
         }
 
         document.querySelectorAll(".chat-open-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
             activeNeedId = btn.dataset.needId;
+            clearReplyRecipient();
+            if (btn.dataset.donorId && btn.dataset.donorName) {
+              setReplyRecipient(
+                Number(btn.dataset.donorId),
+                btn.dataset.donorName
+              );
+            }
             document.getElementById("chatModalTitle").textContent =
               "Need #" + activeNeedId + " — " + btn.dataset.needTitle;
             chatModal.style.display = "flex";
-            loadMessages(activeNeedId);
+            loadMessages(activeNeedId, false);
+            startChatPolling(activeNeedId);
+            setTimeout(() => {
+              const input = document.getElementById("chatInput");
+              if (input) input.focus();
+            }, 100);
           });
         });
 
         document
           .getElementById("closeChatBtn")
-          .addEventListener("click", () => {
-            chatModal.style.display = "none";
-          });
+          .addEventListener("click", closeChatModal);
+        chatModal.addEventListener("click", (e) => {
+          if (e.target === chatModal) closeChatModal();
+        });
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && chatModal.style.display === "flex")
+            closeChatModal();
+        });
 
         document
           .getElementById("sendChatForm")
@@ -859,22 +1621,44 @@ uri="jakarta.tags.functions" %>
 
             sendBtn.disabled = true;
             try {
+              const bodyParams = {
+                needId: activeNeedId,
+                content: text,
+                messageType: activeReceiverId ? "DIRECT" : "BROADCAST",
+              };
+              if (activeReceiverId) {
+                bodyParams.receiverId = activeReceiverId;
+              }
               const res = await fetch(contextPath + "/api/messages", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
+                  "X-Expected-User-Id": currentUserId,
                 },
-                body: new URLSearchParams({
-                  needId: activeNeedId,
-                  content: text,
-                }),
+                body: new URLSearchParams(bodyParams),
               });
+              const data = await res.json();
               if (res.ok) {
                 input.value = "";
-                await loadMessages(activeNeedId);
+                await loadMessages(activeNeedId, false);
+              } else {
+                if (
+                  res.status === 401 ||
+                  res.status === 403 ||
+                  res.status === 409
+                ) {
+                  stopChatPolling();
+                }
+                alert(
+                  data.error ||
+                    "Failed to send message (Status " + res.status + ")."
+                );
               }
+            } catch (err) {
+              alert("Network error sending message.");
             } finally {
               sendBtn.disabled = false;
+              input.focus();
             }
           });
       });

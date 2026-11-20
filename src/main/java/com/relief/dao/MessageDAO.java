@@ -1,10 +1,12 @@
 package com.relief.dao;
 
 import com.relief.model.Message;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.sql.SQLException;
 import java.util.List;
 
 @Repository
@@ -23,19 +25,64 @@ public class MessageDAO {
         m.setSenderId(rs.getInt("sender_id"));
         int recId = rs.getInt("receiver_id");
         m.setReceiverId(rs.wasNull() ? null : recId);
-        m.setContent(rs.getString("content"));
+
+        String text = null;
+        try {
+            text = rs.getString("message");
+        } catch (SQLException ignored) {}
+        if (text == null) {
+            try {
+                text = rs.getString("content");
+            } catch (SQLException ignored) {}
+        }
+        m.setContent(text != null ? text : "");
         m.setSentAt(rs.getTimestamp("sent_at"));
-        m.setSenderName(rs.getString("sender_name"));
+
+        try {
+            String type = rs.getString("message_type");
+            m.setMessageType(type != null ? type : "DIRECT");
+        } catch (SQLException ignored) {
+            m.setMessageType(m.getReceiverId() == null ? "BROADCAST" : "DIRECT");
+        }
+
+        try {
+            m.setSenderName(rs.getString("sender_name"));
+        } catch (SQLException ignored) {
+            m.setSenderName("User");
+        }
         return m;
     };
 
     public int save(Message message) {
-        return jdbcTemplate.update(
-                "INSERT INTO messages (need_id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)",
-                message.getNeedId(),
-                message.getSenderId(),
-                message.getReceiverId(),
-                message.getContent().trim());
+        String content = message.getContent() != null ? message.getContent().trim() : "";
+        String type = message.getMessageType() != null ? message.getMessageType().trim().toUpperCase() : "DIRECT";
+        
+        try {
+            return jdbcTemplate.update(
+                    "INSERT INTO messages (need_id, sender_id, receiver_id, message, message_type) VALUES (?, ?, ?, ?, ?)",
+                    message.getNeedId(),
+                    message.getSenderId(),
+                    message.getReceiverId(),
+                    content,
+                    type);
+        } catch (DataAccessException e) {
+            // Fallback for schemas without message_type or with content column
+            try {
+                return jdbcTemplate.update(
+                        "INSERT INTO messages (need_id, sender_id, receiver_id, message) VALUES (?, ?, ?, ?)",
+                        message.getNeedId(),
+                        message.getSenderId(),
+                        message.getReceiverId(),
+                        content);
+            } catch (DataAccessException e2) {
+                return jdbcTemplate.update(
+                        "INSERT INTO messages (need_id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)",
+                        message.getNeedId(),
+                        message.getSenderId(),
+                        message.getReceiverId(),
+                        content);
+            }
+        }
     }
 
     public List<Message> findByNeedId(int needId) {

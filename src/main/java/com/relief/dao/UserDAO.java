@@ -32,6 +32,15 @@ public class UserDAO {
         return jdbcTemplate.query("SELECT * FROM users ORDER BY created_at DESC", userMapper);
     }
 
+    public User findById(int userId) {
+        List<User> users = jdbcTemplate.query(
+            "SELECT * FROM users WHERE user_id = ?",
+            userMapper,
+            userId
+        );
+        return users.isEmpty() ? null : users.get(0);
+    }
+
     public User findByMobile(String mobileNumber) {
         List<User> users = jdbcTemplate.query(
             "SELECT * FROM users WHERE mobile_number = ?",

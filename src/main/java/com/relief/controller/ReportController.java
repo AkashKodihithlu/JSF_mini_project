@@ -1,7 +1,9 @@
 package com.relief.controller;
 
 import com.relief.model.Need;
+import com.relief.model.User;
 import com.relief.service.NeedService;
+import com.relief.service.PdfReportService;
 import com.relief.service.PledgeAllocationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
@@ -23,11 +25,14 @@ public class ReportController {
 
     private final NeedService needService;
     private final PledgeAllocationService pledgeAllocationService;
+    private final PdfReportService pdfReportService;
 
     public ReportController(NeedService needService,
-            PledgeAllocationService pledgeAllocationService) {
+            PledgeAllocationService pledgeAllocationService,
+            PdfReportService pdfReportService) {
         this.needService = needService;
         this.pledgeAllocationService = pledgeAllocationService;
+        this.pdfReportService = pdfReportService;
     }
 
     @GetMapping("/summary")
@@ -111,6 +116,28 @@ public class ReportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"disaster_relief_report.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(bytes);
+    }
+
+    @GetMapping("/export/pdf")
+    public ResponseEntity<byte[]> exportNeedsPdf(HttpSession session) {
+        User user = (User) session.getAttribute("loggedInUser");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!"DEPARTMENT".equals(user.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            byte[] pdfBytes = pdfReportService.generateDepartmentReport();
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"disaster_relief_coordination_report.pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     private String escapeCsv(String value) {

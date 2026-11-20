@@ -37,6 +37,7 @@ public class DashboardController {
         model.addAttribute("user", user);
         model.addAttribute("disasters", needService.getActiveDisasters());
         model.addAttribute("myNeeds", needService.getNeedsByUser(user.getUserId()));
+        model.addAttribute("myAllocations", pledgeAllocationService.getAllocationsByAffectedUser(user.getUserId()));
         model.addAttribute("alerts", communicationService.getRelevantAlertsForUser(user));
         return "dashboard/affected-dashboard";
     }
@@ -54,6 +55,7 @@ public class DashboardController {
         model.addAttribute("user", user);
         model.addAttribute("matchedNeeds", pledgeAllocationService.getMatchedNeedsForDonor(user));
         model.addAttribute("myPledges", pledgeAllocationService.getPledgesByDonor(user.getUserId()));
+        model.addAttribute("myAllocations", pledgeAllocationService.getAllocationsByDonor(user.getUserId()));
         model.addAttribute("alerts", communicationService.getRelevantAlertsForUser(user));
         return "dashboard/donor-dashboard";
     }

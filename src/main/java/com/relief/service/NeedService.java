@@ -8,6 +8,7 @@ import com.relief.dao.NeedVerificationDAO;
 import com.relief.model.Disaster;
 import com.relief.model.Need;
 import com.relief.model.NeedVerification;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -37,22 +39,71 @@ public class NeedService {
     private final NeedDAO needDAO;
     private final NeedVerificationDAO verificationDAO;
     private final DisasterDAO disasterDAO;
+    private final AiService aiService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(4))
             .build();
 
+    // 3-arg constructor preserved for backward compatibility
     public NeedService(NeedDAO needDAO,
             NeedVerificationDAO verificationDAO,
             DisasterDAO disasterDAO) {
+        this(needDAO, verificationDAO, disasterDAO, null);
+    }
+
+    @Autowired
+    public NeedService(NeedDAO needDAO,
+            NeedVerificationDAO verificationDAO,
+            DisasterDAO disasterDAO,
+            AiService aiService) {
         this.needDAO = needDAO;
         this.verificationDAO = verificationDAO;
         this.disasterDAO = disasterDAO;
+        this.aiService = aiService;
     }
 
     /**
-     * Submits a new relief need, auto-classifies category/urgency if requested,
-     * checks for duplicate requests via the AI service, and persists to MySQL.
+     * Runs live Gemini AI preview analysis for category, urgency, and semantic
+     * duplicate detection.
+     */
+    public Map<String, Object> analyzeNeedPreview(int disasterId,
+            String description,
+            int quantityRequired,
+            Integer affectedPeopleCount,
+            Integer criticalPeopleCount) {
+        String cleanDesc = description == null ? "" : description.trim();
+        List<Need> existingForDisaster = new ArrayList<>();
+        for (Need n : needDAO.findAll()) {
+            if (n.getDisasterId() == disasterId && !"REJECTED".equalsIgnoreCase(n.getStatus())) {
+                existingForDisaster.add(n);
+            }
+        }
+
+        if (aiService != null) {
+            return aiService.analyzeReliefNeed(
+                    cleanDesc, quantityRequired, affectedPeopleCount, criticalPeopleCount, existingForDisaster);
+        }
+
+        String suggestedCategory = classifyCategory(cleanDesc);
+        String suggestedUrgency = recommendPriority(cleanDesc, quantityRequired);
+        List<String> existingDescriptions = existingForDisaster.stream().map(Need::getDescription).toList();
+        Map<String, Object> dupCheck = checkDuplicateNeed(cleanDesc, existingDescriptions);
+
+        Map<String, Object> fallback = new LinkedHashMap<>();
+        fallback.put("suggestedCategory", suggestedCategory);
+        fallback.put("suggestedUrgency", suggestedUrgency);
+        fallback.put("isDuplicateSuspected", dupCheck.get("isDuplicate"));
+        fallback.put("similarityScore", dupCheck.get("similarity"));
+        fallback.put("aiReasoning", "Classified via local NLP rules.");
+        fallback.put("aiSource", "LOCAL_FALLBACK");
+        return fallback;
+    }
+
+    /**
+     * Submits a new relief need, auto-classifies category/urgency using live Gemini
+     * AI if requested,
+     * checks for duplicate requests, and persists to MySQL.
      */
     public Map<String, Object> submitNeed(int disasterId,
             int createdByUserId,
@@ -62,6 +113,21 @@ public class NeedService {
             String urgency,
             double latitude,
             double longitude) {
+        return submitNeed(disasterId, createdByUserId, category, description, quantityRequired,
+                urgency, latitude, longitude, null, null, null);
+    }
+
+    public Map<String, Object> submitNeed(int disasterId,
+            int createdByUserId,
+            String category,
+            String description,
+            int quantityRequired,
+            String urgency,
+            double latitude,
+            double longitude,
+            Integer affectedPeopleCount,
+            Integer criticalPeopleCount,
+            String locationName) {
         if (disasterDAO.findById(disasterId) == null) {
             throw new IllegalArgumentException("Selected disaster event does not exist.");
         }
@@ -71,23 +137,38 @@ public class NeedService {
         if (quantityRequired <= 0) {
             throw new IllegalArgumentException("Quantity required must be greater than zero.");
         }
+        if (latitude < -90.0 || latitude > 90.0) {
+            throw new IllegalArgumentException("Latitude must be between -90.0 and 90.0 degrees.");
+        }
+        if (longitude < -180.0 || longitude > 180.0) {
+            throw new IllegalArgumentException("Longitude must be between -180.0 and 180.0 degrees.");
+        }
+        if (affectedPeopleCount != null && affectedPeopleCount < 0) {
+            throw new IllegalArgumentException("Affected people count cannot be negative.");
+        }
+        if (criticalPeopleCount != null && criticalPeopleCount < 0) {
+            throw new IllegalArgumentException("Critical people count cannot be negative.");
+        }
+        if (affectedPeopleCount != null && criticalPeopleCount != null && criticalPeopleCount > affectedPeopleCount) {
+            throw new IllegalArgumentException("Critical people count cannot exceed total affected people count.");
+        }
 
         String cleanDesc = description.trim();
+        Map<String, Object> aiAnalysis = analyzeNeedPreview(
+                disasterId, cleanDesc, quantityRequired, affectedPeopleCount, criticalPeopleCount);
+
         String resolvedCategory = (category == null || category.isBlank() || "AUTO".equalsIgnoreCase(category.trim()))
-                ? classifyCategory(cleanDesc)
+                ? String.valueOf(aiAnalysis.getOrDefault("suggestedCategory", classifyCategory(cleanDesc)))
                 : category.trim();
 
         String resolvedUrgency = (urgency == null || urgency.isBlank() || "AUTO".equalsIgnoreCase(urgency.trim()))
-                ? recommendPriority(cleanDesc, quantityRequired)
+                ? String.valueOf(
+                        aiAnalysis.getOrDefault("suggestedUrgency", recommendPriority(cleanDesc, quantityRequired)))
                 : urgency.trim().toUpperCase(Locale.ROOT);
 
         if (!VALID_URGENCIES.contains(resolvedUrgency)) {
             resolvedUrgency = "MEDIUM";
         }
-
-        // Duplicate detection against existing active needs in the same disaster
-        List<String> existingDescriptions = needDAO.findDescriptionsByDisaster(disasterId);
-        Map<String, Object> duplicateResult = checkDuplicateNeed(cleanDesc, existingDescriptions);
 
         Need need = new Need();
         need.setDisasterId(disasterId);
@@ -99,6 +180,9 @@ public class NeedService {
         need.setStatus("PENDING_VERIFICATION");
         need.setLatitude(latitude);
         need.setLongitude(longitude);
+        need.setAffectedPeopleCount(affectedPeopleCount);
+        need.setCriticalPeopleCount(criticalPeopleCount);
+        need.setLocationName(locationName != null && !locationName.isBlank() ? locationName.trim() : null);
 
         needDAO.save(need);
 
@@ -106,8 +190,13 @@ public class NeedService {
         response.put("status", "PENDING_VERIFICATION");
         response.put("classifiedCategory", resolvedCategory);
         response.put("recommendedUrgency", resolvedUrgency);
-        response.put("isDuplicateSuspected", duplicateResult.get("isDuplicate"));
-        response.put("similarityScore", duplicateResult.get("similarity"));
+        response.put("isDuplicateSuspected", aiAnalysis.getOrDefault("isDuplicateSuspected", false));
+        response.put("similarityScore", aiAnalysis.getOrDefault("similarityScore", 0.0));
+        response.put("aiReasoning", aiAnalysis.get("aiReasoning"));
+        response.put("aiSource", aiAnalysis.get("aiSource"));
+        response.put("affectedPeopleCount", affectedPeopleCount);
+        response.put("criticalPeopleCount", criticalPeopleCount);
+        response.put("locationName", need.getLocationName());
         return response;
     }
 
@@ -181,7 +270,7 @@ public class NeedService {
                 return result;
             }
         } catch (Exception ignored) {
-            // Fallback to local token similarity when Python AI service is offline
+            // Fallback to local token similarity
         }
 
         double maxSim = 0.0;
@@ -198,10 +287,6 @@ public class NeedService {
         return result;
     }
 
-    /**
-     * Classifies need category from description keywords when AUTO classification
-     * is chosen.
-     */
     public String classifyCategory(String description) {
         String text = description.toLowerCase(Locale.ROOT);
         if (containsAny(text, "medicine", "insulin", "first aid", "bandage", "doctor", "hospital", "fever", "oxygen",
@@ -223,9 +308,6 @@ public class NeedService {
         return "General Relief Supplies";
     }
 
-    /**
-     * Recommends urgency priority based on critical keywords and requested scale.
-     */
     public String recommendPriority(String description, int quantity) {
         String text = description.toLowerCase(Locale.ROOT);
         if (containsAny(text, "trapped", "critical", "urgent", "infant", "pregnant", "oxygen", "insulin", "bleeding",

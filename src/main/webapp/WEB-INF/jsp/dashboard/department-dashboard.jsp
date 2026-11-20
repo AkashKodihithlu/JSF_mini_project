@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -133,14 +134,19 @@
             font-weight: 700;
             text-transform: uppercase;
         }
+        .score-pill {
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #7dd3fc;
+        }
         .urg-CRITICAL { background: rgba(220, 38, 38, 0.25); color: #fca5a5; border: 1px solid #f87171; }
         .urg-HIGH { background: rgba(234, 88, 12, 0.25); color: #fdba74; border: 1px solid #fb923c; }
         .urg-MEDIUM { background: rgba(37, 99, 235, 0.25); color: #93c5fd; border: 1px solid #60a5fa; }
         .urg-LOW { background: rgba(100, 116, 139, 0.25); color: #cbd5e1; }
         .st-PENDING_VERIFICATION { background: rgba(234, 179, 8, 0.2); color: #fde047; }
         .st-VERIFIED, .st-PARTIALLY_FULFILLED, .st-ALLOCATED, .st-IN_TRANSIT { background: rgba(14, 165, 233, 0.22); color: #7dd3fc; }
-        .st-FULFILLED, .st-DELIVERED { background: rgba(34, 197, 94, 0.22); color: #86efac; }
-        .st-REJECTED, .st-REASSIGNED { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+        .st-FULFILLED, .st-DELIVERED, .st-CONFIRMED { background: rgba(34, 197, 94, 0.22); color: #86efac; }
+        .st-REJECTED, .st-REASSIGNED, .st-CANCELLED { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
         .btn-sm {
             padding: 0.38rem 0.72rem;
             font-size: 0.78rem;
@@ -154,7 +160,6 @@
         .btn-approve { background: #16a34a; color: #ffffff; }
         .btn-dup { background: #d97706; color: #ffffff; }
         .btn-reject { background: #dc2626; color: #ffffff; }
-        .btn-transit { background: #0284c7; color: #ffffff; }
         .msg-banner {
             padding: 0.75rem 1rem;
             border-radius: 6px;
@@ -164,15 +169,203 @@
         }
         .msg-ok { background: rgba(22, 101, 52, 0.9); border: 1px solid #86efac; color: #dcfce7; }
         .msg-err { background: rgba(153, 27, 27, 0.9); border: 1px solid #fca5a5; color: #ffffff; }
+
+        /* Horizontal Connection Timeline Cards */
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+        .conn-card {
+            background: var(--navy-950);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 1.2rem 1.4rem;
+            transition: border-color 0.2s ease;
+        }
+        .conn-card.is-confirmed {
+            border-color: rgba(74, 222, 128, 0.45);
+        }
+        .conn-card.is-cancelled {
+            border-color: rgba(248, 113, 113, 0.45);
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .conn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.05rem;
+        }
+        .conn-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+        .htl-track {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            position: relative;
+            margin: 1.1rem 0 0.8rem;
+            padding: 0 0.5rem;
+        }
+        .htl-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            z-index: 1;
+        }
+        .htl-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: rgba(148, 163, 184, 0.22);
+            z-index: -1;
+        }
+        .htl-step.done:not(:last-child)::after {
+            background: linear-gradient(90deg, #38bdf8, #4ade80);
+        }
+        .htl-step.active:not(:last-child)::after {
+            background: linear-gradient(90deg, #38bdf8 35%, rgba(148, 163, 184, 0.22) 100%);
+        }
+        .htl-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: #0f172a;
+            border: 2px solid rgba(148, 163, 184, 0.35);
+            color: #94a3b8;
+            margin-bottom: 0.45rem;
+        }
+        .htl-step.done .htl-dot {
+            background: rgba(22, 163, 74, 0.25);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+        .htl-step.active .htl-dot {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: #38bdf8;
+            color: #e0f2fe;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+        }
+        .htl-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+        .htl-step.done .htl-label { color: #86efac; }
+        .htl-step.active .htl-label { color: #38bdf8; }
+        .htl-sub {
+            font-size: 0.71rem;
+            color: #94a3b8;
+            margin-top: 0.15rem;
+            max-width: 150px;
+        }
+        .cancel-callout {
+            background: rgba(153, 27, 27, 0.22);
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin: 0.65rem 0;
+            font-size: 0.84rem;
+            color: #fecaca;
+        }
+        .conn-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 0.6rem;
+        }
+        .step-advance-link {
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #7dd3fc;
+            padding: 0.38rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .step-advance-link:hover {
+            background: rgba(14, 165, 233, 0.28);
+            color: #ffffff;
+        }
+
         .chart-box {
             position: relative;
             height: 260px;
             width: 100%;
         }
         #commandMap {
-            height: 330px;
+            height: 480px;
             border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             z-index: 1;
+        }
+        .map-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .map-kpi-card {
+            background: rgba(13, 33, 73, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 0.85rem;
+        }
+        .map-kpi-card span {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+        }
+        .map-kpi-card strong {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.6rem;
+            color: #ffffff;
+            display: block;
+            margin-top: 0.2rem;
+        }
+        .map-legend {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            margin-top: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
         }
         .modal-backdrop {
             position: fixed;
@@ -219,6 +412,21 @@
         @media (max-width: 980px) {
             .two-col-grid { grid-template-columns: 1fr; }
         }
+        @media (max-width: 640px) {
+            .htl-track {
+                grid-template-columns: 1fr;
+                gap: 0.85rem;
+            }
+            .htl-step:not(:last-child)::after {
+                display: none;
+            }
+            .htl-step {
+                flex-direction: row;
+                text-align: left;
+                gap: 0.75rem;
+            }
+            .htl-sub { max-width: none; }
+        }
     </style>
 </head>
 <body data-context-path="${pageContext.request.contextPath}"
@@ -243,13 +451,18 @@
             </a>
 
             <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <a href="${pageContext.request.contextPath}/api/reports/export/pdf" class="btn-relief"
+                   style="padding: 0.45rem 0.95rem; font-size: 0.82rem; text-decoration: none;"
+                   title="Download Disaster Relief Coordination PDF Report">
+                    &#128196; Download PDF Report
+                </a>
                 <a href="${pageContext.request.contextPath}/api/reports/export/csv" class="btn-outline-glass"
                    style="padding: 0.45rem 0.9rem; font-size: 0.82rem;">
                     &#11015; Export CSV
                 </a>
                 <button type="button" onclick="window.print()" class="btn-outline-glass"
                         style="padding: 0.45rem 0.9rem; font-size: 0.82rem;">
-                    &#128424; Print / PDF
+                    &#128424; Print View
                 </button>
                 <span class="user-pill">&#128737; <c:out value="${user.name}"/></span>
                 <a href="${pageContext.request.contextPath}/logout" class="btn-relief"
@@ -276,7 +489,7 @@
                 <strong style="color: #fdba74;">${fn:length(surplusPledges)}</strong>
             </div>
             <div class="kpi-card">
-                <span>Active Allocations</span>
+                <span>Donor &harr; Citizen Connections</span>
                 <strong style="color: #4ade80;">${fn:length(allocations)}</strong>
             </div>
         </section>
@@ -419,8 +632,127 @@
             </section>
         </div>
 
-        <!-- 3. Geo-Alert Broadcast & Live Command Map -->
+        <!-- 3. Geospatial Command & Control Map -->
+        <section class="panel-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+                <div>
+                    <h2>Geospatial Command Map</h2>
+                    <p class="panel-sub" style="margin-bottom: 0;">Real-time spatial visualization of active relief needs and department safety assessment perimeters.</p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <span id="mapLastUpdated" style="font-size: 0.78rem; color: var(--text-muted);">Polling active...</span>
+                    <button type="button" id="refreshMapBtn" class="btn-outline-glass" style="padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                        &#8635; Refresh Map
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Summary KPI Cards -->
+            <div class="map-kpi-grid">
+                <div class="map-kpi-card">
+                    <span>Active Needs</span>
+                    <strong id="mapMetricActiveNeeds">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Critical People</span>
+                    <strong id="mapMetricCritical" style="color: #fca5a5;">--</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Est. Unique Affected</span>
+                    <strong id="mapMetricUniqueAffected" style="color: #7dd3fc;">--</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Unsafe Zones</span>
+                    <strong id="mapMetricUnsafe" style="color: #ef4444;">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Monitoring Zones</span>
+                    <strong id="mapMetricMonitoring" style="color: #f59e0b;">0</strong>
+                </div>
+                <div class="map-kpi-card">
+                    <span>Unassessed Needs</span>
+                    <strong id="mapMetricUnknown" style="color: #94a3b8;">0</strong>
+                </div>
+            </div>
+
+            <div id="commandMap"></div>
+
+            <div class="map-legend">
+                <span><strong>Legend:</strong></span>
+                <span><span class="legend-dot" style="background: #ef4444;"></span> Critical Need</span>
+                <span><span class="legend-dot" style="background: #f97316;"></span> High Urgency</span>
+                <span><span class="legend-dot" style="background: #eab308;"></span> Medium Urgency</span>
+                <span><span class="legend-dot" style="background: #3b82f6;"></span> Low Urgency</span>
+                <span style="margin: 0 4px; color: #475569;">|</span>
+                <span><span class="legend-dot" style="background: #dc2626; border: 1px solid #ef4444;"></span> Unsafe Zone</span>
+                <span><span class="legend-dot" style="background: #d97706; border: 1px solid #f59e0b;"></span> Monitoring Zone</span>
+                <span><span class="legend-dot" style="background: #059669; border: 1px solid #10b981;"></span> Safe Zone</span>
+                <span style="margin-left: auto; font-style: italic; color: #94a3b8;">Click anywhere on the map to auto-set assessment coordinates</span>
+            </div>
+        </section>
+
+        <!-- 4. Area Safety Assessment & Geo-Alert Actions -->
         <div class="two-col-grid">
+            <section class="panel-card" style="margin-bottom: 0;">
+                <h2>Record Area Safety Assessment</h2>
+                <p class="panel-sub">Evaluate district sectors as Safe, Monitoring, or Unsafe. Creates an immutable historical audit record.</p>
+
+                <form id="safetyAssessmentForm">
+                    <div class="form-field">
+                        <label for="safetyDisasterId">Disaster Event</label>
+                        <select id="safetyDisasterId" class="dark-select">
+                            <c:forEach var="d" items="${disasters}">
+                                <option value="${d.disasterId}">${fn:escapeXml(d.name)}</option>
+                            </c:forEach>
+                            <c:if test="${empty disasters}">
+                                <option value="1">Coastal Monsoon Flood 2026</option>
+                            </c:if>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="safetyAreaName">Area / Sector Name</label>
+                        <input type="text" id="safetyAreaName" class="dark-input" placeholder="e.g. Velachery West Sector" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-bottom: 0.9rem;">
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Latitude</label>
+                            <input type="number" step="any" id="safetyLat" class="dark-input"
+                                   value="${user.latitude != 0 ? user.latitude : 13.0827}" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Longitude</label>
+                            <input type="number" step="any" id="safetyLng" class="dark-input"
+                                   value="${user.longitude != 0 ? user.longitude : 80.2707}" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Radius (km)</label>
+                            <input type="number" step="any" id="safetyRadius" class="dark-input" min="0.1" max="100" value="3.0" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.9rem;">
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Safety Status</label>
+                            <select id="safetyStatus" class="dark-select" required>
+                                <option value="MONITORING">MONITORING (Caution)</option>
+                                <option value="UNSAFE">UNSAFE (Hazard / Inundated)</option>
+                                <option value="SAFE">SAFE (Verified Clear)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.76rem; color: #cbd5e1;">Flood Depth (metres, opt.)</label>
+                            <input type="number" step="0.01" min="0" max="30" id="safetyFloodDepth" class="dark-input" placeholder="e.g. 1.8">
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="safetyNotes">Assessment Notes / Field Guidance</label>
+                        <textarea id="safetyNotes" rows="2" class="dark-textarea" placeholder="Field report, breach status, shelter capacity, route access..."></textarea>
+                    </div>
+                    <button type="submit" id="safetySubmitBtn" class="btn-relief" style="width: 100%;">
+                        &#128737; Save Area Safety Assessment
+                    </button>
+                </form>
+            </section>
+
             <section class="panel-card" style="margin-bottom: 0;">
                 <h2>Broadcast Radius Geo-Alert</h2>
                 <p class="panel-sub">Send targeted emergency alerts to citizens and donors within a kilometer radius.</p>
@@ -466,64 +798,152 @@
                     </button>
                 </form>
             </section>
-
-            <section class="panel-card" style="margin-bottom: 0;">
-                <h2>Geospatial Command Map</h2>
-                <p class="panel-sub">Active relief requests and broadcasted alert zones across the district.</p>
-                <div id="commandMap"></div>
-            </section>
         </div>
 
-        <!-- 4. Resource Allocations & Delivery Tracking -->
+        <!-- 5. Horizontal Resource Allocation & Delivery Timelines -->
         <section class="panel-card">
-            <h2>Resource Allocations &amp; Delivery Status</h2>
-            <p class="panel-sub">Update field dispatch status from Allocated to In-Transit and Delivered.</p>
+            <h2>Live Donor &harr; Citizen Delivery Timelines</h2>
+            <p class="panel-sub">
+                Unified 4-stage horizontal progress across all active allocations, citizen receipt confirmations, and donor cancellation explanations.
+            </p>
 
             <c:choose>
                 <c:when test="${empty allocations}">
                     <p style="color: var(--text-muted); text-align: center; padding: 1rem 0;">
-                        No resource allocations recorded yet. Allocations appear here once donors pledge supplies.
+                        No resource allocations recorded yet. Timelines appear here automatically once donors connect with citizens.
                     </p>
                 </c:when>
                 <c:otherwise>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Allocation ID</th>
-                                    <th>Pledge ID</th>
-                                    <th>Target Need</th>
-                                    <th>Units Allocated</th>
-                                    <th>Delivery Status</th>
-                                    <th>Update Stage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:forEach var="al" items="${allocations}">
-                                    <tr>
-                                        <td><strong>#${al.allocationId}</strong></td>
-                                        <td>Pledge #${al.pledgeId}</td>
-                                        <td>Need #${al.needId}</td>
-                                        <td><strong>${al.quantityAllocated}</strong></td>
-                                        <td><span class="badge st-${al.status}">${al.status}</span></td>
-                                        <td>
-                                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-                                                <button type="button" class="btn-sm btn-transit alloc-status-btn"
-                                                        data-alloc-id="${al.allocationId}" data-status="IN_TRANSIT">In Transit</button>
-                                                <button type="button" class="btn-sm btn-approve alloc-status-btn"
-                                                        data-alloc-id="${al.allocationId}" data-status="DELIVERED">Delivered</button>
+                    <div class="timeline-list">
+                        <c:forEach var="al" items="${allocations}">
+                            <c:set var="stepNum" value="1"/>
+                            <c:if test="${al.status == 'IN_TRANSIT'}"><c:set var="stepNum" value="2"/></c:if>
+                            <c:if test="${al.status == 'DELIVERED'}"><c:set var="stepNum" value="3"/></c:if>
+                            <c:if test="${al.status == 'CONFIRMED'}"><c:set var="stepNum" value="4"/></c:if>
+                            <c:if test="${al.status == 'CANCELLED'}"><c:set var="stepNum" value="-1"/></c:if>
+
+                            <div class="conn-card ${al.status == 'CONFIRMED' ? 'is-confirmed' : (al.status == 'CANCELLED' ? 'is-cancelled' : '')}">
+                                <div class="conn-header">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                                            <strong style="font-size: 1.08rem; color: #ffffff;">
+                                                Allocation #${al.allocationId} &bull; <c:out value="${al.needCategory}"/> (Need #${al.needId})
+                                            </strong>
+                                            <span class="badge score-pill">${al.quantityAllocated} Units</span>
+                                            <c:if test="${not empty al.needUrgency}">
+                                                <span class="badge urg-${al.needUrgency}">${al.needUrgency}</span>
+                                            </c:if>
+                                        </div>
+                                        <div class="conn-meta">
+                                            <span>Donor: <strong style="color: #7dd3fc;"><c:out value="${not empty al.donorName ? al.donorName : 'Donor'}"/></strong> (Pledge #${al.pledgeId})</span>
+                                            <span>&rarr;</span>
+                                            <span>Recipient: <strong style="color: #e2e8f0;"><c:out value="${not empty al.affectedPersonName ? al.affectedPersonName : 'Citizen'}"/></strong></span>
+                                            <c:if test="${not empty al.allocatedAt}">
+                                                <span>&bull; <fmt:formatDate value="${al.allocatedAt}" pattern="dd MMM, HH:mm"/></span>
+                                            </c:if>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <button type="button" class="btn-outline-glass chat-open-btn"
+                                                style="padding: 0.38rem 0.8rem; font-size: 0.78rem;"
+                                                data-need-id="${al.needId}"
+                                                data-need-title="${fn:escapeXml(al.needCategory)}">
+                                            &#128172; Command Chat
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <c:choose>
+                                    <c:when test="${al.status == 'CANCELLED'}">
+                                        <div class="cancel-callout">
+                                            <strong>&#10006; Cancelled by Donor</strong>
+                                            <c:if test="${not empty al.cancelledAt}">
+                                                (<fmt:formatDate value="${al.cancelledAt}" pattern="dd MMM, HH:mm"/>)
+                                            </c:if>
+                                            <div style="margin-top: 0.3rem; color: #fee2e2;">
+                                                <strong>Cancellation Reason:</strong> &ldquo;<c:out value="${not empty al.cancellationReason ? al.cancellationReason : 'Cancelled by donor'}"/>&rdquo;
                                             </div>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <!-- 4-Stage Horizontal Stepper -->
+                                        <div class="htl-track">
+                                            <div class="htl-step ${stepNum > 1 ? 'done' : (stepNum == 1 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 1 ? '&#10003;' : '1'}</div>
+                                                <div class="htl-label">Connected</div>
+                                                <div class="htl-sub">Pledge #${al.pledgeId} matched</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum > 2 ? 'done' : (stepNum == 2 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 2 ? '&#10003;' : '2'}</div>
+                                                <div class="htl-label">In Transit</div>
+                                                <div class="htl-sub">Dispatched toward citizen</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum > 3 ? 'done' : (stepNum == 3 ? 'active' : '')}">
+                                                <div class="htl-dot">${stepNum > 3 ? '&#10003;' : '3'}</div>
+                                                <div class="htl-label">At Drop-Off</div>
+                                                <div class="htl-sub">Awaiting citizen receipt</div>
+                                            </div>
+
+                                            <div class="htl-step ${stepNum == 4 ? 'done' : ''}">
+                                                <div class="htl-dot">${stepNum == 4 ? '&#10003;' : '4'}</div>
+                                                <div class="htl-label">Need Reached</div>
+                                                <div class="htl-sub">
+                                                    <c:choose>
+                                                        <c:when test="${stepNum == 4}">
+                                                            Confirmed by citizen
+                                                            <c:if test="${not empty al.confirmedAt}">
+                                                                (<fmt:formatDate value="${al.confirmedAt}" pattern="dd MMM, HH:mm"/>)
+                                                            </c:if>
+                                                        </c:when>
+                                                        <c:otherwise>Citizen confirms receipt</c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
+
+                                <div class="conn-footer">
+                                    <div style="font-size: 0.8rem; color: #94a3b8;">
+                                        <c:choose>
+                                            <c:when test="${al.status == 'CONFIRMED'}">
+                                                <span style="color: #4ade80; font-weight: 600;">&#10003; Verified Delivered: Recipient confirmed supplies reached them.</span>
+                                            </c:when>
+                                            <c:when test="${al.status == 'CANCELLED'}">
+                                                ${al.quantityAllocated} units restored to Need #${al.needId} open queue.
+                                            </c:when>
+                                            <c:otherwise>
+                                                Current Timeline Stage: <strong style="color: #e2e8f0;">${al.status}</strong>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <c:if test="${al.status == 'ALLOCATED'}">
+                                            <button type="button" class="step-advance-link alloc-status-btn"
+                                                    data-alloc-id="${al.allocationId}" data-status="IN_TRANSIT">
+                                                Officer Override: In Transit &rarr;
+                                            </button>
+                                        </c:if>
+                                        <c:if test="${al.status == 'IN_TRANSIT'}">
+                                            <button type="button" class="step-advance-link alloc-status-btn"
+                                                    data-alloc-id="${al.allocationId}" data-status="DELIVERED">
+                                                Officer Override: At Drop-Off &rarr;
+                                            </button>
+                                        </c:if>
+                                    </div>
+                                </div>
+                            </div>
+                        </c:forEach>
                     </div>
                 </c:otherwise>
             </c:choose>
         </section>
 
-        <!-- 5. Master Needs Ledger -->
+        <!-- 6. Master Needs Ledger -->
         <section class="panel-card">
             <h2>Master Needs Ledger</h2>
             <p class="panel-sub">Monitor all reported needs across stages and open direct coordination chats.</p>
@@ -745,7 +1165,7 @@
                 });
             }
 
-            // 4. Allocation Delivery Status Buttons
+            // 4. Allocation Timeline Stage Override Links
             document.querySelectorAll(".alloc-status-btn").forEach((btn) => {
                 btn.addEventListener("click", async () => {
                     const allocId = btn.dataset.allocId;
@@ -760,7 +1180,7 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            showCmdBanner("Allocation #" + allocId + " updated to " + newStatus + ".", false);
+                            showCmdBanner("Allocation #" + allocId + " timeline updated to " + newStatus + ".", false);
                             setTimeout(() => window.location.reload(), 650);
                         } else {
                             showCmdBanner(data.error || "Failed to update allocation status.", true);
@@ -815,27 +1235,31 @@
             }
             renderAnalyticsChart();
 
-            // 6. Leaflet Command Map (Reads from DOM data-* attributes)
+            // 6. Interactive Geospatial Command Map with Auto-Polling & Safety Overlays
             if (typeof L !== "undefined" && document.getElementById("commandMap")) {
                 const cmdMap = L.map("commandMap").setView([centerLat, centerLng], 11);
                 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                     attribution: "&copy; OpenStreetMap contributors"
                 }).addTo(cmdMap);
 
-                document.querySelectorAll(".need-map-row").forEach((row) => {
-                    const lat = parseFloat(row.dataset.lat);
-                    const lng = parseFloat(row.dataset.lng);
-                    if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-                        const popupDiv = document.createElement("div");
-                        const titleEl = document.createElement("strong");
-                        titleEl.textContent = "Need #" + row.dataset.needId + ": " + row.dataset.category;
-                        popupDiv.appendChild(titleEl);
-                        popupDiv.appendChild(document.createElement("br"));
-                        popupDiv.appendChild(document.createTextNode(
-                            "Status: " + row.dataset.status + " | Urgency: " + row.dataset.urgency
-                        ));
+                const needLayerGroup = L.layerGroup().addTo(cmdMap);
+                const safetyLayerGroup = L.layerGroup().addTo(cmdMap);
+                const alertLayerGroup = L.layerGroup().addTo(cmdMap);
 
-                        L.marker([lat, lng]).addTo(cmdMap).bindPopup(popupDiv);
+                cmdMap.on("click", (e) => {
+                    const latVal = e.latlng.lat.toFixed(6);
+                    const lngVal = e.latlng.lng.toFixed(6);
+                    const safetyLat = document.getElementById("safetyLat");
+                    const safetyLng = document.getElementById("safetyLng");
+                    if (safetyLat && safetyLng) {
+                        safetyLat.value = latVal;
+                        safetyLng.value = lngVal;
+                    }
+                    const alertLat = document.getElementById("alertLat");
+                    const alertLng = document.getElementById("alertLng");
+                    if (alertLat && alertLng) {
+                        alertLat.value = latVal;
+                        alertLng.value = lngVal;
                     }
                 });
 
@@ -846,56 +1270,452 @@
                     if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
                         const popupDiv = document.createElement("div");
                         const titleEl = document.createElement("strong");
-                        titleEl.textContent = "Alert: " + item.dataset.title;
+                        titleEl.textContent = "Broadcast Alert: " + item.dataset.title;
                         popupDiv.appendChild(titleEl);
                         popupDiv.appendChild(document.createElement("br"));
-                        popupDiv.appendChild(document.createTextNode("Radius: " + radiusKm + " km"));
+                        popupDiv.appendChild(document.createTextNode("Broadcast Radius: " + radiusKm + " km"));
 
                         L.circle([lat, lng], {
                             color: "#ef4444",
                             fillColor: "#dc2626",
-                            fillOpacity: 0.18,
-                            radius: radiusKm * 1000
-                        }).addTo(cmdMap).bindPopup(popupDiv);
+                            fillOpacity: 0.14,
+                            radius: radiusKm * 1000,
+                            dashArray: "5, 5",
+                            weight: 1.5
+                        }).addTo(alertLayerGroup).bindPopup(popupDiv);
                     }
                 });
+
+                function makePopupRow(label, value, valueColor) {
+                    const r = document.createElement("div");
+                    r.style.margin = "2px 0";
+                    const lbl = document.createElement("span");
+                    lbl.style.fontWeight = "600";
+                    lbl.textContent = label + ": ";
+                    r.appendChild(lbl);
+                    const val = document.createElement("span");
+                    val.textContent = value;
+                    if (valueColor) val.style.color = valueColor;
+                    r.appendChild(val);
+                    return r;
+                }
+
+                function createNeedPopup(need) {
+                    const div = document.createElement("div");
+                    div.style.minWidth = "230px";
+                    div.style.fontSize = "0.85rem";
+                    div.style.color = "#0f172a";
+                    div.style.lineHeight = "1.35";
+
+                    const header = document.createElement("strong");
+                    header.textContent = "Need #" + need.needId + ": " + (need.category || "Relief Need");
+                    header.style.display = "block";
+                    header.style.fontSize = "0.95rem";
+                    header.style.marginBottom = "4px";
+                    header.style.color = "#0369a1";
+                    div.appendChild(header);
+
+                    if (need.description) {
+                        const desc = document.createElement("div");
+                        desc.style.fontSize = "0.78rem";
+                        desc.style.color = "#475569";
+                        desc.style.marginBottom = "6px";
+                        desc.textContent = need.description;
+                        div.appendChild(desc);
+                    }
+
+                    div.appendChild(makePopupRow("Urgency", need.urgency || "Unknown"));
+                    div.appendChild(makePopupRow("Status", need.status || "Unknown"));
+                    div.appendChild(makePopupRow("Location", need.locationName ? need.locationName : "Not reported"));
+
+                    const affectedText = (need.affectedPeopleCount !== null && need.affectedPeopleCount !== undefined)
+                            ? need.affectedPeopleCount + " people"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Affected Count", affectedText));
+
+                    const criticalText = (need.criticalPeopleCount !== null && need.criticalPeopleCount !== undefined)
+                            ? need.criticalPeopleCount + " people"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Critical Count", criticalText, "#b91c1c"));
+
+                    const req = need.quantityRequired || 0;
+                    const alloc = need.quantityAllocated || 0;
+                    const rem = need.quantityRemaining !== undefined ? need.quantityRemaining : (req - alloc);
+                    div.appendChild(makePopupRow("Req / Alloc / Rem", req + " / " + alloc + " / " + rem));
+
+                    div.appendChild(makePopupRow("Disaster", (need.disasterName ? need.disasterName : "Event #" + (need.disasterId || 1))));
+
+                    const updatedStr = need.createdAt ? need.createdAt.replace("T", " ").substring(0, 16) : "Recent";
+                    div.appendChild(makePopupRow("Last Updated", updatedStr));
+
+                    return div;
+                }
+
+                function createSafetyPopup(a) {
+                    const div = document.createElement("div");
+                    div.style.minWidth = "230px";
+                    div.style.fontSize = "0.85rem";
+                    div.style.color = "#0f172a";
+                    div.style.lineHeight = "1.35";
+
+                    const header = document.createElement("strong");
+                    header.textContent = "Area: " + a.areaName;
+                    header.style.display = "block";
+                    header.style.fontSize = "0.95rem";
+                    header.style.marginBottom = "4px";
+                    header.style.color = "#0f172a";
+                    div.appendChild(header);
+
+                    let statusColor = "#16a34a";
+                    if (a.safetyStatus === "UNSAFE") statusColor = "#dc2626";
+                    else if (a.safetyStatus === "MONITORING") statusColor = "#d97706";
+
+                    div.appendChild(makePopupRow("Safety Status", a.safetyStatus, statusColor));
+
+                    const floodText = (a.floodLevelMeters !== null && a.floodLevelMeters !== undefined)
+                            ? a.floodLevelMeters + " m"
+                            : "Not reported";
+                    div.appendChild(makePopupRow("Flood Depth", floodText));
+
+                    div.appendChild(makePopupRow("Radius", (a.radiusKm || 0) + " km"));
+                    div.appendChild(makePopupRow("Assessed By", a.departmentOfficerName || "Department Officer"));
+
+                    const timeStr = a.assessedAt ? a.assessedAt.replace("T", " ").substring(0, 16) : "Recent";
+                    div.appendChild(makePopupRow("Assessed At", timeStr));
+
+                    if (a.assessmentNotes) {
+                        div.appendChild(makePopupRow("Notes", a.assessmentNotes));
+                    }
+
+                    return div;
+                }
+
+                function renderNeedMarkers(needs) {
+                    needLayerGroup.clearLayers();
+                    const urgencyStyles = {
+                        "CRITICAL": { color: "#ffffff", fillColor: "#ef4444", radius: 9 },
+                        "HIGH": { color: "#ffffff", fillColor: "#f97316", radius: 8 },
+                        "MEDIUM": { color: "#ffffff", fillColor: "#eab308", radius: 7 },
+                        "LOW": { color: "#ffffff", fillColor: "#3b82f6", radius: 6 }
+                    };
+
+                    needs.forEach((need) => {
+                        const lat = parseFloat(need.latitude);
+                        const lng = parseFloat(need.longitude);
+                        if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+                            const style = urgencyStyles[need.urgency] || urgencyStyles["MEDIUM"];
+                            const marker = L.circleMarker([lat, lng], {
+                                radius: style.radius,
+                                color: style.color,
+                                fillColor: style.fillColor,
+                                fillOpacity: 0.9,
+                                weight: 2
+                            });
+                            marker.bindPopup(createNeedPopup(need));
+                            needLayerGroup.addLayer(marker);
+                        }
+                    });
+                }
+
+                function renderSafetyCircles(assessments) {
+                    safetyLayerGroup.clearLayers();
+                    assessments.forEach((a) => {
+                        if (a.safetyStatus === "UNKNOWN") return;
+
+                        const lat = parseFloat(a.latitude);
+                        const lng = parseFloat(a.longitude);
+                        const radiusMeters = (parseFloat(a.radiusKm) || 1) * 1000;
+
+                        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+
+                        let strokeColor = "#10b981";
+                        let fillColor = "#059669";
+                        let fillOpacity = 0.18;
+
+                        if (a.safetyStatus === "UNSAFE") {
+                            strokeColor = "#ef4444";
+                            fillColor = "#dc2626";
+                            fillOpacity = 0.22;
+                        } else if (a.safetyStatus === "MONITORING") {
+                            strokeColor = "#f59e0b";
+                            fillColor = "#d97706";
+                            fillOpacity = 0.18;
+                        }
+
+                        const circle = L.circle([lat, lng], {
+                            radius: radiusMeters,
+                            color: strokeColor,
+                            fillColor: fillColor,
+                            fillOpacity: fillOpacity,
+                            weight: 2
+                        });
+                        circle.bindPopup(createSafetyPopup(a));
+                        safetyLayerGroup.addLayer(circle);
+                    });
+                }
+
+                function updateMapSummaryCards(metrics) {
+                    if (!metrics) return;
+                    const elActive = document.getElementById("mapMetricActiveNeeds");
+                    if (elActive) elActive.textContent = metrics.totalActiveNeeds ?? 0;
+
+                    const elCrit = document.getElementById("mapMetricCritical");
+                    if (elCrit) {
+                        elCrit.textContent = (metrics.reportedCriticalPeople !== null && metrics.reportedCriticalPeople !== undefined)
+                                ? metrics.reportedCriticalPeople
+                                : "Not reported";
+                    }
+
+                    const elAff = document.getElementById("mapMetricUniqueAffected");
+                    if (elAff) {
+                        elAff.textContent = (metrics.estimatedUniqueAffectedPeople !== null && metrics.estimatedUniqueAffectedPeople !== undefined)
+                                ? metrics.estimatedUniqueAffectedPeople + " est."
+                                : "Not reported";
+                    }
+
+                    const elUnsafe = document.getElementById("mapMetricUnsafe");
+                    if (elUnsafe) elUnsafe.textContent = metrics.unsafeAreasCount ?? 0;
+
+                    const elMon = document.getElementById("mapMetricMonitoring");
+                    if (elMon) elMon.textContent = metrics.monitoringAreasCount ?? 0;
+
+                    const elUnk = document.getElementById("mapMetricUnknown");
+                    if (elUnk) elUnk.textContent = metrics.unknownSafetyNeedsCount ?? 0;
+                }
+
+                async function fetchMapDataAndOverlays() {
+                    try {
+                        const disasterSelect = document.getElementById("safetyDisasterId");
+                        const disasterId = disasterSelect ? (disasterSelect.value || 1) : 1;
+
+                        const [needsRes, safetyRes, metricsRes] = await Promise.all([
+                            fetch(contextPath + "/api/needs"),
+                            fetch(contextPath + "/api/safety-assessments?disasterId=" + disasterId),
+                            fetch(contextPath + "/api/safety-assessments/metrics?disasterId=" + disasterId)
+                        ]);
+
+                        if (needsRes.ok) {
+                            const needsData = await needsRes.json();
+                            const needs = Array.isArray(needsData) ? needsData : (needsData.needs || []);
+                            renderNeedMarkers(needs);
+                        }
+
+                        if (safetyRes.ok) {
+                            const safetyData = await safetyRes.json();
+                            const assessments = safetyData.assessments || [];
+                            renderSafetyCircles(assessments);
+                        }
+
+                        if (metricsRes.ok) {
+                            const metrics = await metricsRes.json();
+                            updateMapSummaryCards(metrics);
+                        }
+
+                        const now = new Date();
+                        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        const updatedEl = document.getElementById("mapLastUpdated");
+                        if (updatedEl) {
+                            updatedEl.textContent = "Live — Polled at " + timeStr;
+                        }
+                    } catch (err) {
+                        console.warn("Command map polling error:", err);
+                    }
+                }
+
+                fetchMapDataAndOverlays();
+                setInterval(fetchMapDataAndOverlays, 12000);
+
+                const refreshBtn = document.getElementById("refreshMapBtn");
+                if (refreshBtn) {
+                    refreshBtn.addEventListener("click", () => {
+                        fetchMapDataAndOverlays();
+                        showCmdBanner("Command map refreshed.", false);
+                    });
+                }
+
+                const disasterSelect = document.getElementById("safetyDisasterId");
+                if (disasterSelect) {
+                    disasterSelect.addEventListener("change", () => {
+                        fetchMapDataAndOverlays();
+                    });
+                }
+
+                const safetyForm = document.getElementById("safetyAssessmentForm");
+                if (safetyForm) {
+                    safetyForm.addEventListener("submit", async (e) => {
+                        e.preventDefault();
+                        const submitBtn = document.getElementById("safetySubmitBtn");
+                        submitBtn.disabled = true;
+
+                        try {
+                            const disasterIdVal = document.getElementById("safetyDisasterId").value;
+                            const areaNameVal = document.getElementById("safetyAreaName").value;
+                            const latVal = document.getElementById("safetyLat").value;
+                            const lngVal = document.getElementById("safetyLng").value;
+                            const radiusVal = document.getElementById("safetyRadius").value;
+                            const statusVal = document.getElementById("safetyStatus").value;
+                            const floodVal = document.getElementById("safetyFloodDepth").value;
+                            const notesVal = document.getElementById("safetyNotes").value;
+
+                            const params = new URLSearchParams({
+                                disasterId: disasterIdVal,
+                                areaName: areaNameVal,
+                                latitude: latVal,
+                                longitude: lngVal,
+                                radiusKm: radiusVal,
+                                safetyStatus: statusVal
+                            });
+                            if (floodVal !== "") {
+                                params.append("floodLevelMeters", floodVal);
+                            }
+                            if (notesVal !== "") {
+                                params.append("assessmentNotes", notesVal);
+                            }
+
+                            const res = await fetch(contextPath + "/api/safety-assessments", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                body: params
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                                showCmdBanner("Area safety assessment for '" + areaNameVal + "' recorded successfully!", false);
+                                safetyForm.reset();
+                                fetchMapDataAndOverlays();
+                            } else {
+                                showCmdBanner(data.message || data.error || "Failed to record safety assessment.", true);
+                            }
+                        } catch (err) {
+                            showCmdBanner("Network error submitting safety assessment.", true);
+                        } finally {
+                            submitBtn.disabled = false;
+                        }
+                    });
+                }
             }
 
             // 7. Coordination Chat Modal
             let activeNeedId = null;
+            let chatPollTimer = null;
             const chatModal = document.getElementById("chatModal");
             const chatHistory = document.getElementById("chatHistory");
 
-            async function loadMessages(needId) {
-                chatHistory.innerHTML = "<div style='color:#94a3b8;'>Loading messages...</div>";
-                try {
-                    const res = await fetch(contextPath + "/api/messages/" + needId);
-                    const data = await res.json();
-                    chatHistory.innerHTML = "";
+            function renderMessages(messages) {
+                chatHistory.innerHTML = "";
+                if (!messages || messages.length === 0) {
+                    const emptyEl = document.createElement("div");
+                    emptyEl.style.color = "#94a3b8";
+                    emptyEl.style.textAlign = "center";
+                    emptyEl.style.padding = "1.5rem 0";
+                    emptyEl.textContent = "No messages on this need yet.";
+                    chatHistory.appendChild(emptyEl);
+                    return;
+                }
+                messages.forEach((m) => {
+                    const bubble = document.createElement("div");
+                    bubble.className = "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
 
-                    if (!data.messages || data.messages.length === 0) {
-                        const emptyEl = document.createElement("div");
-                        emptyEl.style.color = "#94a3b8";
-                        emptyEl.textContent = "No messages on this need yet.";
-                        chatHistory.appendChild(emptyEl);
+                    const headerEl = document.createElement("div");
+                    headerEl.style.fontSize = "0.72rem";
+                    headerEl.style.marginBottom = "0.2rem";
+                    headerEl.style.display = "flex";
+                    headerEl.style.justifyContent = "space-between";
+                    headerEl.style.gap = "0.5rem";
+
+                    const senderEl = document.createElement("strong");
+                    senderEl.textContent = (m.senderId === currentUserId) ? "You" : (m.senderName || "User");
+
+                    const senderWrap = document.createElement("div");
+                    senderWrap.style.display = "flex";
+                    senderWrap.style.alignItems = "center";
+                    senderWrap.style.gap = "0.35rem";
+                    senderWrap.appendChild(senderEl);
+
+                    if (m.messageType === "BROADCAST") {
+                        const bBadge = document.createElement("span");
+                        bBadge.textContent = "BROADCAST";
+                        bBadge.style.cssText = "font-size:0.6rem; background:rgba(234,179,8,0.2); color:#fde047; padding:1px 5px; border-radius:4px; font-weight:600; border:1px solid rgba(234,179,8,0.35);";
+                        senderWrap.appendChild(bBadge);
+                    }
+                    headerEl.appendChild(senderWrap);
+
+                    if (m.sentAt) {
+                        const timeEl = document.createElement("span");
+                        timeEl.style.color = "#94a3b8";
+                        timeEl.style.fontSize = "0.68rem";
+                        try {
+                            const d = new Date(m.sentAt);
+                            timeEl.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } catch (e) {}
+                        headerEl.appendChild(timeEl);
+                    }
+                    bubble.appendChild(headerEl);
+
+                    const contentEl = document.createElement("div");
+                    contentEl.textContent = m.content || "";
+                    bubble.appendChild(contentEl);
+
+                    chatHistory.appendChild(bubble);
+                });
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            async function loadMessages(needId, isPolling = false) {
+                if (!needId) return;
+                if (!isPolling && chatHistory.children.length === 0) {
+                    chatHistory.innerHTML = "<div style='color:#94a3b8; text-align:center; padding:1.5rem 0;'>Loading messages...</div>";
+                }
+                try {
+                    const res = await fetch(contextPath + "/api/messages/" + needId, {
+                        headers: { "X-Expected-User-Id": currentUserId }
+                    });
+                    if (!res.ok) {
+                        if (res.status === 401 || res.status === 403 || res.status === 409) {
+                            stopChatPolling();
+                            const reason = res.status === 401
+                                ? "Session expired. Please log in again."
+                                : res.status === 409
+                                ? "Session user mismatch. Please refresh your page."
+                                : "You are not authorized to view messages for this need.";
+                            chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center; padding:1rem 0; font-size:0.85rem;'>" + reason + "</div>";
+                            return;
+                        }
+                        if (!isPolling) {
+                            chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center;'>Unable to load messages (Status " + res.status + ").</div>";
+                        }
                         return;
                     }
-
-                    data.messages.forEach((m) => {
-                        const bubble = document.createElement("div");
-                        bubble.className = "chat-bubble" + (m.senderId === currentUserId ? " mine" : "");
-
-                        const senderEl = document.createElement("strong");
-                        senderEl.textContent = (m.senderName || "User") + ": ";
-                        bubble.appendChild(senderEl);
-                        bubble.appendChild(document.createTextNode(m.content || ""));
-
-                        chatHistory.appendChild(bubble);
-                    });
-                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                    const data = await res.json();
+                    renderMessages(data.messages || []);
                 } catch (err) {
-                    chatHistory.innerHTML = "<div style='color:#fca5a5;'>Unable to load messages.</div>";
+                    if (!isPolling) {
+                        chatHistory.innerHTML = "<div style='color:#fca5a5; text-align:center;'>Network error loading messages.</div>";
+                    }
                 }
+            }
+
+            function startChatPolling(needId) {
+                stopChatPolling();
+                chatPollTimer = setInterval(() => {
+                    if (activeNeedId && chatModal.style.display !== "none") {
+                        loadMessages(activeNeedId, true);
+                    } else {
+                        stopChatPolling();
+                    }
+                }, 2500);
+            }
+
+            function stopChatPolling() {
+                if (chatPollTimer) {
+                    clearInterval(chatPollTimer);
+                    chatPollTimer = null;
+                }
+            }
+
+            function closeChatModal() {
+                chatModal.style.display = "none";
+                stopChatPolling();
+                activeNeedId = null;
             }
 
             document.querySelectorAll(".chat-open-btn").forEach((btn) => {
@@ -904,12 +1724,21 @@
                     document.getElementById("chatModalTitle").textContent =
                         "Need #" + activeNeedId + " — " + btn.dataset.needTitle;
                     chatModal.style.display = "flex";
-                    loadMessages(activeNeedId);
+                    loadMessages(activeNeedId, false);
+                    startChatPolling(activeNeedId);
+                    setTimeout(() => {
+                        const input = document.getElementById("chatInput");
+                        if (input) input.focus();
+                    }, 100);
                 });
             });
 
-            document.getElementById("closeChatBtn").addEventListener("click", () => {
-                chatModal.style.display = "none";
+            document.getElementById("closeChatBtn").addEventListener("click", closeChatModal);
+            chatModal.addEventListener("click", (e) => {
+                if (e.target === chatModal) closeChatModal();
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && chatModal.style.display === "flex") closeChatModal();
             });
 
             document.getElementById("sendChatForm").addEventListener("submit", async (e) => {
@@ -924,15 +1753,27 @@
                 try {
                     const res = await fetch(contextPath + "/api/messages", {
                         method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: new URLSearchParams({ needId: activeNeedId, content: text })
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-Expected-User-Id": currentUserId
+                        },
+                        body: new URLSearchParams({ needId: activeNeedId, content: text, messageType: "BROADCAST" })
                     });
+                    const data = await res.json();
                     if (res.ok) {
                         input.value = "";
-                        await loadMessages(activeNeedId);
+                        await loadMessages(activeNeedId, false);
+                    } else {
+                        if (res.status === 401 || res.status === 403 || res.status === 409) {
+                            stopChatPolling();
+                        }
+                        alert(data.error || ("Failed to send message (Status " + res.status + ")."));
                     }
+                } catch (err) {
+                    alert("Network error sending message.");
                 } finally {
                     sendBtn.disabled = false;
+                    input.focus();
                 }
             });
         });
